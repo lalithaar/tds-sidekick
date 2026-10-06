@@ -67,7 +67,7 @@ cp "$APP_DIR/deploy/nginx.conf" /etc/nginx/sites-available/tds-sidekick
 sed -i "s/YOUR.DOMAIN/$DOMAIN/g" /etc/nginx/sites-available/tds-sidekick
 ln -sf /etc/nginx/sites-available/tds-sidekick /etc/nginx/sites-enabled/tds-sidekick
 nginx -t
-systemctl reload nginx
+systemctl enable --now nginx
 
 echo "==> TLS (Let's Encrypt)"
 certbot --nginx -d "$DOMAIN" --redirect --agree-tos -m admin@$DOMAIN
