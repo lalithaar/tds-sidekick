@@ -57,13 +57,13 @@ runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" migra
 runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" collectstatic --noinput
 
 echo "==> systemd unit"
-cp deploy/tds-sidekick.service /etc/systemd/system/tds-sidekick.service
+cp "$APP_DIR/deploy/tds-sidekick.service" /etc/systemd/system/tds-sidekick.service
 systemctl daemon-reload
 systemctl enable --now tds-sidekick
 
 echo "==> nginx"
 rm -f /etc/nginx/sites-enabled/default
-cp deploy/nginx.conf /etc/nginx/sites-available/tds-sidekick
+cp "$APP_DIR/deploy/nginx.conf" /etc/nginx/sites-available/tds-sidekick
 sed -i "s/YOUR.DOMAIN/$DOMAIN/g" /etc/nginx/sites-available/tds-sidekick
 ln -sf /etc/nginx/sites-available/tds-sidekick /etc/nginx/sites-enabled/tds-sidekick
 nginx -t
