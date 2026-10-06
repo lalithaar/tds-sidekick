@@ -48,11 +48,16 @@ SECRET_KEY=$(grep '^SECRET_KEY=' "$ENV_DIR/env" 2>/dev/null | cut -d= -f2-)
 if [ -z "$SECRET_KEY" ]; then
     SECRET_KEY=$("$APP_DIR/.venv/bin/python" -c "import secrets; print(secrets.token_urlsafe(50))")
 fi
+# Merge previously configured hosts/origins so a rerun never wipes manual additions.
+EXISTING_HOSTS=$(grep '^ALLOWED_HOSTS=' "$ENV_DIR/env" 2>/dev/null | cut -d= -f2- | tr ',' '\n' | sed '/^$/d' | sort -u | paste -sd, -)
+ALLOWED_HOSTS_VALUE="${EXISTING_HOSTS:+$EXISTING_HOSTS,}$DOMAIN"
+EXISTING_ORIGINS=$(grep '^CSRF_TRUSTED_ORIGINS=' "$ENV_DIR/env" 2>/dev/null | cut -d= -f2- | tr ',' '\n' | sed '/^$/d' | sort -u | paste -sd, -)
+CSRF_ORIGINS_VALUE="${EXISTING_ORIGINS:+$EXISTING_ORIGINS,}https://$DOMAIN"
 cat > "$ENV_DIR/env" <<ENV
 SECRET_KEY=$SECRET_KEY
 DJANGO_DEBUG=false
-ALLOWED_HOSTS=$DOMAIN
-CSRF_TRUSTED_ORIGINS=https://$DOMAIN
+ALLOWED_HOSTS=$ALLOWED_HOSTS_VALUE
+CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS_VALUE
 ENV
 chmod 600 "$ENV_DIR/env"
 
