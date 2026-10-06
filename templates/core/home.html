@@ -3,6 +3,7 @@
 {% block content %}
 <h2>TDS Sidekick</h2>
 <p class='tagline'>Your study-group sidekick — opt in, split the work, solve, review, and verify together. We're all cooked, let's get cooked together efficiently.</p>
+<p><a href='{% url "core:explainer" %}'>Guide: how to write good solutions</a></p>
 {% if not user.is_authenticated %}
     <p>Please <a href='{% url "accounts:login" %}'>login</a> or <a href='{% url "accounts:signup" %}'>sign up</a>.</p>
 {% elif not user.is_approved %}
@@ -90,13 +91,20 @@
         {% endif %}
 
     {% else %}
-        {% if steps %}
+        {% if steps or pending_verify %}
         <h3>Next steps</h3>
+        {% if steps %}
         <ul class='plain'>
             {% for s in steps %}
-            <li><a href='{{ s.url }}'>{{ s.text }}</a></li>
+            <li>{% if s.url %}<a href='{{ s.url }}'>{{ s.text }}</a>{% else %}{{ s.text }}{% endif %}</li>
             {% endfor %}
         </ul>
+        {% else %}
+        <p class='all-good'>You're all done — wait for the next GA release and take a break.</p>
+        {% endif %}
+        {% for pv in pending_verify %}
+        <p class='muted'>Heads up: {% for n in pv.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ pv.title }}" still need a teammate's working marks before verified answers unlock.</p>
+        {% endfor %}
         {% endif %}
 
         <h3>Assignments</h3>

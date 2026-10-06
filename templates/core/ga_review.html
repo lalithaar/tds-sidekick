@@ -3,7 +3,13 @@
 {% block title %}Review{% endblock %}
 {% block content %}
 <h2>{{ ga.title }} – Review</h2>
-<p>Reviews done: {{ reviews_done }} (need >= 2)</p>
+<p>Reviews done: {{ reviews_done }} ({% if reviews_done >= 2 %}minimum met{% else %}need 2{% endif %})</p>
+{% if locked_qnums %}
+<p class='muted'>You can't review others yet on
+    {% for q in locked_qnums %}Q{{ q }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    — submit your own solution for those first.</p>
+{% endif %}
+{% if eligible %}
 <table>
     <thead>
         <tr><th>Q#</th><th>Solver</th><th>Status</th><th>Action</th></tr>
@@ -19,4 +25,7 @@
     {% endfor %}
     </tbody>
 </table>
+{% else %}
+<p class='muted'>Nothing to review yet — check back once teammates submit solutions.</p>
+{% endif %}
 {% endblock %}

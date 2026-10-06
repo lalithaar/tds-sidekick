@@ -5,6 +5,7 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('guide/how-to-write-explainers/', views.explainer, name='explainer'),
     path('stats/', views.system_stats, name='system_stats'),
     path('ga/create/', views.ga_create, name='ga_create_new'),
     path('ga/<slug:slug>/', views.ga_detail, name='ga_detail'),

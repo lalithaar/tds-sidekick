@@ -6,10 +6,14 @@
 <div class='markdown'>{{ sol.content_md|markdown }}</div>
 <form method='post'>
     {% csrf_token %}
+    <div class='muted'>
+        <p><strong>How to decide "Working?":</strong> follow the steps in the solution yourself — copy the script, run it, enter what it shows. If the submission page marks it correct, pick <strong>Yes</strong>. If it doesn't — wrong answer, a script error, or a step that doesn't exist — pick <strong>No</strong> and comment what's wrong so the writer can fix it.</p>
+        <p>Examples of a helpful comment: "The link in step 2 returns 404"; "The script errors at <code>data[0]</code> — the JSON keys are named differently now"; "Step 3 says 'paste the code below' but there's no code block".</p>
+    </div>
     <p>Working?</p>
     <label><input type='radio' name='is_working' value='yes' required> Yes</label>
     <label><input type='radio' name='is_working' value='no'> No</label>
-    <p>Comment (optional)</p>
+    <p>Comment (optional — required when you pick No, so the writer knows what to fix)</p>
     <textarea name='comment' rows='3' cols='60'></textarea>
     <br><button class='btn' type='submit'>Submit Review</button>
 </form>

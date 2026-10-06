@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Guide: how to write good solutions{% endblock %}
+{% block content %}
+<div class='markdown'>
+    <h2>How to write good solutions</h2>
+    <p>An explainer is how you write up a solution here: the step-by-step description of how you solved a question, clear enough that a teammate with no other context can reproduce it themselves.</p>
+    <p>The goal is: You solved the problem, great. Now how do we explain so that <strong>the other person reading this with no other context can solve it as well</strong>.</p>
+
+    <p>If it's a question where you run a script in devtools console, say</p>
+    <p>Run this script in devtools console (<code>Ctrl+Shift+I</code>, click 'console' on top right).</p>
+    <pre><code class='language-js'>fetch('file.json')
+  .then(function (r) { return r.json(); })
+  .then(function (list) { console.log(list[2].answer); });</code></pre>
+
+    <p>If you downloaded a file, ran a particular script and then found the answer there, say</p>
+    <ol>
+        <li>Open your TDS folder for this GA. If you haven't already created one, create a folder called TDS, and create a subfolder called GA3 inside it.</li>
+        <li>Download <code>file-name-as.json</code> into that folder.</li>
+        <li>In that folder, create a file called <code>run.py</code> and paste the following code and run it.</li>
+        <li>The 4th line will say something like "sample-of-what-the-answer-will-look-like", that is your answer to enter.</li>
+    </ol>
+    <pre><code class='language-python'>import json
+with open('file-name-as.json') as f:
+    data = json.load(f)
+print("The answer is:", data["questions"][0]["answer"])</code></pre>
+
+    <p>Think of it like this: You are speaking in English, but you cannot submit your assignment for some reason. There is this person who is helping you out. But that person doesn't know english.</p>
+
+    <p>Now there is someone who knows english and the helper's language, but they have no idea of anything else. All they can do is translate between both of you, tell literally what you told them as it is.</p>
+
+    <p>So, you write down each step without leaving out anything (because you have no idea if the translator will even know to include it, tho it looks obvious to you — what if they leave out a step and the other person can't solve the question for you?)</p>
+
+    <p>Spell out every step, one by one, and help the person solve the assignment is it.</p>
+
+    <p>If you are using AI/AI agents to solve it for you, tell the agent to write the how to solve it along with scripts and paste it there instead. YOU MUST NOT submit an AI script without verifying it yourself as correct. Don't include the paddings AI uses and tell it to get to the point. Copy paste this text to the AI so it knows what we are looking for.</p>
+</div>
+<p class='muted'><a href='{% url "core:home" %}'>← Back</a></p>
+{% endblock %}

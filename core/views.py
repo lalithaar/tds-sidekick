@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.db.models import Count
+from django.db import IntegrityError, transaction
+from django.db.models import Count, OuterRef, Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -51,6 +51,15 @@ def home(request):
         if is_admin:
             _build_admin_dashboard(ctx, gas)
         else:
+            rev_counts = dict(
+                Validation.objects.filter(reviewer=user)
+                .values_list('solution__assignment_id')
+                .annotate(n=Count('id'))
+            )
+            marks_low = {}
+            for sol in Solution.objects.filter(solver=user, submitted_at__isnull=False).select_related('question'):
+                if sol.verifier_count < 2:
+                    marks_low.setdefault(sol.assignment_id, []).append(sol.question.number)
             ctx['open_gas'] = [it for it in gas if it['ga'].status != Assignment.Status.CLOSED]
             ctx['closed_gas'] = [it for it in gas if it['ga'].status == Assignment.Status.CLOSED]
             steps = []
@@ -59,17 +68,29 @@ def home(request):
                 if ga.status == Assignment.Status.POLLING and it['poll_open'] and not it['is_opted']:
                     steps.append({'text': f"Polling started for {ga.title} — opt in to participate.",
                                   'url': reverse('core:ga_poll', args=[ga.slug])})
-                elif ga.status == Assignment.Status.ASSIGNED and it['my_slots']:
-                    if it['submitted'] < it['my_slots']:
-                        qnums = sorted(AssignmentSlot.objects.filter(assignment=ga, user=user)
-                                       .values_list('question__number', flat=True))
-                        label = ', '.join(f'Q{n}' for n in qnums) or f"{it['my_slots']} question{'s' if it['my_slots'] != 1 else ''}"
-                        steps.append({'text': f"{label} assigned to you in {ga.title} — submit solutions.",
-                                      'url': reverse('core:ga_mine', args=[ga.slug])})
-                    else:
-                        steps.append({'text': f"All your solutions submitted for {ga.title} — review others.",
-                                      'url': reverse('core:ga_review', args=[ga.slug])})
+                elif ga.status == Assignment.Status.ASSIGNED:
+                    if it['my_slots']:
+                        if it['submitted'] < it['my_slots']:
+                            qnums = sorted(AssignmentSlot.objects.filter(assignment=ga, user=user)
+                                           .values_list('question__number', flat=True))
+                            label = ', '.join(f'Q{n}' for n in qnums) or f"{it['my_slots']} question{'s' if it['my_slots'] != 1 else ''}"
+                            steps.append({'text': f"{label} assigned to you in {ga.title} — submit solutions.",
+                                          'url': reverse('core:ga_mine', args=[ga.slug])})
+                        elif rev_counts.get(ga.id, 0) < 2:
+                            steps.append({'text': f"All your solutions submitted for {ga.title} — review at least 2 others.",
+                                          'url': reverse('core:ga_review', args=[ga.slug])})
+                    elif it['is_opted']:
+                        steps.append({'text': f"You weren't assigned any questions in {ga.title} — nothing to do there for now.",
+                                      'url': None})
             ctx['steps'] = steps
+            ctx['pending_verify'] = [
+                {'title': it['ga'].title, 'qnums': sorted(marks_low[it['ga'].id])}
+                for it in gas
+                if it['ga'].status == Assignment.Status.ASSIGNED
+                and it['ga'].id in marks_low
+                and it['my_slots'] and it['submitted'] >= it['my_slots']
+                and rev_counts.get(it['ga'].id, 0) >= 2
+            ]
     return render(request, 'core/home.html', ctx)
 
 
@@ -407,7 +428,7 @@ def ga_assign(request, slug):
     if request.method == 'POST':
         try:
             assign_randomly(ga)
-            messages.success(request, 'Assigned randomly with >=2 solvers per question.')
+            messages.success(request, 'Assigned randomly — every opt-in seated (at least 2 solvers per question).')
         except ValueError as e:
             messages.error(request, str(e))
     return redirect('core:ga_detail', slug=ga.slug)
@@ -532,14 +553,34 @@ def ga_mine_preview(request, slug, slot_id):
 @login_required
 def ga_review(request, slug):
     ga = get_object_or_404(Assignment, slug=slug)
-    my_qs = set(AssignmentSlot.objects.filter(assignment=ga, user=request.user).values_list('question_id', flat=True))
+    my_slots = list(AssignmentSlot.objects.filter(assignment=ga, user=request.user).select_related('question'))
+    submitted_qs = set(
+        Solution.objects.filter(assignment=ga, solver=request.user, submitted_at__isnull=False)
+        .values_list('question_id', flat=True)
+    )
+    locked_qnums = sorted(s.question.number for s in my_slots if s.question_id not in submitted_qs)
+    locked_qids = [s.question_id for s in my_slots if s.question_id not in submitted_qs]
     reviews_done = Validation.objects.filter(reviewer=request.user, solution__assignment=ga).count()
-    eligible = Solution.objects.filter(assignment=ga, submitted_at__isnull=False).exclude(solver=request.user).select_related('question', 'solver')[:50]
+    reviewed_ids = Validation.objects.filter(
+        reviewer=request.user, solution__assignment=ga
+    ).values_list('solution_id', flat=True)
+    sol_rev = (Validation.objects.filter(solution=OuterRef('pk'))
+               .values('solution_id').annotate(c=Count('id')).values('c'))
+    q_rev = (Validation.objects.filter(solution__assignment=ga, solution__question=OuterRef('question'))
+             .values('solution__question').annotate(c=Count('id')).values('c'))
+    eligible = (Solution.objects.filter(assignment=ga, submitted_at__isnull=False)
+                .exclude(solver=request.user)
+                .exclude(question_id__in=locked_qids)
+                .exclude(id__in=reviewed_ids)
+                .annotate(sol_rev=Subquery(sol_rev), q_rev=Subquery(q_rev))
+                .order_by('q_rev', 'sol_rev', 'id')
+                .select_related('question', 'solver')[:200])
     return render(request, 'core/ga_review.html', {
         'ga': ga,
         'eligible': eligible,
-        'my_qs': my_qs,
         'reviews_done': reviews_done,
+        'locked_qnums': locked_qnums,
+        'my_qs': {s.question_id for s in my_slots},
     })
 
 
@@ -554,13 +595,30 @@ def ga_review_solution(request, slug, solution_id):
     if not sol.submitted_at:
         messages.error(request, 'Solution not submitted yet.')
         return redirect('core:ga_review', slug=ga.slug)
+    assigned_qs = set(
+        AssignmentSlot.objects.filter(assignment=ga, user=request.user).values_list('question_id', flat=True)
+    )
+    submitted_qs = set(
+        Solution.objects.filter(assignment=ga, solver=request.user, submitted_at__isnull=False)
+        .values_list('question_id', flat=True)
+    )
+    if sol.question_id in assigned_qs and sol.question_id not in submitted_qs:
+        messages.error(request, f"Submit your own solution to Q{sol.question.number} first — you can't review that question until then.")
+        return redirect('core:ga_review', slug=ga.slug)
     if Validation.objects.filter(solution=sol, reviewer=request.user).exists():
         messages.info(request, 'Already reviewed this solution.')
         return redirect('core:ga_review', slug=ga.slug)
     if request.method == 'POST':
         is_working = request.POST.get('is_working') == 'yes'
         comment = request.POST.get('comment', '').strip()
-        Validation.objects.create(solution=sol, reviewer=request.user, is_working=is_working, comment=comment)
+        if not is_working and not comment:
+            messages.error(request, 'Please say what went wrong — the writer needs to know what to fix.')
+            return render(request, 'core/ga_review_solution.html', {'ga': ga, 'sol': sol})
+        try:
+            Validation.objects.create(solution=sol, reviewer=request.user, is_working=is_working, comment=comment)
+        except IntegrityError:
+            messages.info(request, 'Already reviewed this solution.')
+            return redirect('core:ga_review', slug=ga.slug)
         sol.last_reviewed_at = timezone.now()
         if is_working:
             sol.verifier_count += 1
@@ -595,3 +653,7 @@ def ga_solution_detail(request, slug, solution_id):
         messages.error(request, 'Only verified solutions are viewable here.')
         return redirect('core:ga_solutions', slug=ga.slug)
     return render(request, 'core/ga_solution_detail.html', {'ga': ga, 'sol': sol})
+
+
+def explainer(request):
+    return render(request, 'core/explainer.html')

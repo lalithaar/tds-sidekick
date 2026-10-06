@@ -61,3 +61,9 @@ class SolutionForm(forms.ModelForm):
                 'class': 'md-editor',
             }),
         }
+
+    def clean_content_md(self):
+        text = (self.cleaned_data.get('content_md') or '').strip()
+        if not text:
+            raise forms.ValidationError('Please write your solution before submitting.')
+        return text

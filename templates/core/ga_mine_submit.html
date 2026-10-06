@@ -5,12 +5,16 @@
 <h2>{{ ga.title }} – Submit Q{{ slot.question.number }}</h2>
 <p class='muted'>Write your step-by-step solution. Markdown is supported — preview updates as you type.</p>
 <div class='md-grid'>
-    <form method='post' class='md-col'>
+    <form method='post' class='md-col' id='submit-form'>
         {% csrf_token %}
         {% if form.errors %}<p class='form-errors'>{{ form.errors }}</p>{% endif %}
         <label for='{{ form.content_md.id_for_label }}'>{{ form.content_md.label }}</label>
         {{ form.content_md }}
-        <button class='btn' type='submit' style='margin-top: 8px'>Submit</button>
+        <div class='editor-actions'>
+            <button class='btn' type='submit'>Submit</button>
+            <button class='link-btn' type='button' id='discard-draft'>Discard draft</button>
+        </div>
+        <p class='muted' id='draft-status' style='margin-top: 6px'></p>
     </form>
     <div class='md-col'>
         <p class='muted'>Preview</p>
@@ -25,6 +29,38 @@
     var out = document.getElementById('md-preview');
     var url = '{% url "core:ga_mine_preview" ga.slug slot.id %}';
     var timer = null;
+    var key = 'tds_draft_{{ ga.slug }}_{{ slot.id }}';
+    var lastSaved = ta.value;
+    var statusEl = document.getElementById('draft-status');
+    var discardBtn = document.getElementById('discard-draft');
+    function nowTime() { return new Date().toTimeString().slice(0, 8); }
+    function saveDraft() {
+        try {
+            localStorage.setItem(key, ta.value);
+            statusEl.textContent = 'Draft saved locally at ' + nowTime() + '. Nothing is shared until you press Submit.';
+        } catch (e) {}
+    }
+    function clearDraft() {
+        try { localStorage.removeItem(key); } catch (e) {}
+    }
+    function loadDraft() {
+        var d;
+        try { d = localStorage.getItem(key); } catch (e) { return; }
+        if (d && d !== lastSaved) {
+            ta.value = d;
+            render();
+            statusEl.textContent = 'Restored your unsaved draft. The submitted copy stays as-is until you press Submit.';
+        }
+    }
+    if (discardBtn) {
+        discardBtn.addEventListener('click', function () {
+            clearDraft();
+            ta.value = lastSaved;
+            statusEl.textContent = 'Draft discarded.';
+            render();
+        });
+    }
+    document.getElementById('submit-form').addEventListener('submit', function () { clearDraft(); });
     function csrfHeader() {
         var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
         return m ? m[1] : '';
@@ -43,9 +79,10 @@
     }
     ta.addEventListener('input', function () {
         clearTimeout(timer);
-        timer = setTimeout(render, 250);
+        timer = setTimeout(function () { render(); saveDraft(); }, 250);
     });
     render();
+    loadDraft();
 })();
 </script>
 {% endblock %}

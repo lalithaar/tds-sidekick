@@ -41,6 +41,15 @@ def assign_randomly(assignment):
                     q_to_users[q.id].add(c)
                     break
 
+    # Pass 3: seat everyone who opted in, even if it pushes a question past 2.
+    # "At least 2 solvers per question" is the target; more is fine.
+    for uid in willing_users:
+        if user_to_qs[uid]:
+            continue
+        q = min(questions, key=lambda q: len(q_to_users[q.id]))
+        user_to_qs[uid].add(q.id)
+        q_to_users[q.id].add(uid)
+
     with transaction.atomic():
         AssignmentSlot.objects.filter(assignment=assignment).delete()
         slots = []
