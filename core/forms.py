@@ -13,8 +13,8 @@ class AssignmentForm(forms.ModelForm):
 class GACreateForm(forms.Form):
     title = forms.CharField(max_length=100)
     num_questions = forms.IntegerField(
-        min_value=1, max_value=12,
-        widget=forms.Select(choices=[(i, i) for i in range(1, 13)],
+        min_value=1, max_value=30,
+        widget=forms.Select(choices=[(i, i) for i in range(1, 31)],
                             attrs={'onchange': 'this.form.submit()'}),
     )
 

@@ -329,13 +329,13 @@ def ga_create(request):
             return redirect('core:ga_detail', slug=ga.slug)
     elif 'num_questions' in request.GET:
         try:
-            n = max(1, min(int(request.GET['num_questions']), 12))
+            n = max(1, min(int(request.GET['num_questions']), 30))
         except (TypeError, ValueError):
             n = 3
         form = GACreateForm(initial={'num_questions': n}, n=n)
     else:
         form = GACreateForm(initial={'num_questions': n}, n=n)
-    return render(request, 'core/ga_create.html', {'form': form, 'n': n, 'num_choices': range(1, 13)})
+    return render(request, 'core/ga_create.html', {'form': form, 'n': n, 'num_choices': range(1, 31)})
 
 
 @login_required
