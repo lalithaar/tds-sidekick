@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load dict_extras %}
 {% block title %}Verified Solutions{% endblock %}
 {% block content %}
 <h2>{{ ga.title }} – Verified Solutions</h2>
@@ -11,16 +10,24 @@
 {% endif %}
 <table>
     <thead>
-        <tr><th>Q#</th><th>Solver</th><th>Status</th><th>Detail</th></tr>
+        <tr><th>Q#</th><th>Solutions</th></tr>
     </thead>
     <tbody>
-    {% for sol in verified %}
+    {% for q, sols in rows %}
         <tr>
-            <td>{{ sol.question.number }}</td>
-            <td>{{ sol.solver|cutie }}</td>
-            <td>{{ sol.status }}</td>
-            <td>{% if ok %}<a href='{% url "core:ga_solution_detail" ga.slug sol.id %}'>View</a>{% else %}-{% endif %}</td>
+            <td>{{ q.number }}</td>
+            <td>
+                {% if ok %}
+                    {% for sol in sols %}
+<a href='{% url "core:ga_solution_detail" ga.slug sol.id %}'>View Solution {{ forloop.counter }}</a>{% if not forloop.last %} · {% endif %}
+                    {% endfor %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
         </tr>
+    {% empty %}
+        <tr><td colspan='2' class='muted'>No verified solutions yet.</td></tr>
     {% endfor %}
     </tbody>
 </table>

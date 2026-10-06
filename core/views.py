@@ -638,8 +638,16 @@ def ga_solutions(request, slug):
     ga = get_object_or_404(Assignment, slug=slug)
     checklist = _gating_checklist(request.user, ga)
     ok = all(i['done'] for i in checklist)
-    verified = Solution.objects.filter(assignment=ga, status=Solution.Status.VERIFIED).select_related('question', 'solver')
-    return render(request, 'core/ga_solutions.html', {'ga': ga, 'ok': ok, 'checklist': checklist, 'verified': verified})
+    verified = (
+        Solution.objects.filter(assignment=ga, status=Solution.Status.VERIFIED)
+        .select_related('question', 'solver')
+        .order_by('question__number', 'id')
+    )
+    by_q = {}
+    for sol in verified:
+        by_q.setdefault(sol.question_id, []).append(sol)
+    rows = [(q, by_q[q.id]) for q in ga.questions.all() if q.id in by_q]
+    return render(request, 'core/ga_solutions.html', {'ga': ga, 'ok': ok, 'checklist': checklist, 'rows': rows})
 
 
 @login_required
