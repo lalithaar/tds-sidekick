@@ -73,8 +73,12 @@ ln -sf /etc/nginx/sites-available/tds-sidekick /etc/nginx/sites-enabled/tds-side
 nginx -t
 systemctl enable --now nginx
 
-echo "==> TLS (Let's Encrypt)"
-certbot --nginx -d "$DOMAIN" --redirect --agree-tos -m admin@$DOMAIN
+echo "==> TLS"
+if [ "${WITH_CERTBOT:-0}" = "1" ]; then
+    certbot --nginx -d "$DOMAIN" --redirect --agree-tos -m admin@$DOMAIN
+else
+    echo "    Skipping Let's Encrypt — TLS is terminated by the platform proxy."
+fi
 
 echo
 echo "DONE. App should be live at https://$DOMAIN"
