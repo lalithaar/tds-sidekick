@@ -63,7 +63,8 @@ runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" colle
 echo "==> systemd unit"
 cp "$APP_DIR/deploy/tds-sidekick.service" /etc/systemd/system/tds-sidekick.service
 systemctl daemon-reload
-systemctl enable --now tds-sidekick
+systemctl enable tds-sidekick
+systemctl restart tds-sidekick
 
 echo "==> nginx"
 rm -f /etc/nginx/sites-enabled/default
