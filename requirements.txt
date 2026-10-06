@@ -1,0 +1,9 @@
+asgiref==3.12.1
+bleach==6.4.0
+Django==6.1.1
+gunicorn==23.0.0
+Markdown==3.11
+Pygments==2.21.0
+sqlparse==0.6.0
+tzdata==2026.5
+webencodings==0.6.1
