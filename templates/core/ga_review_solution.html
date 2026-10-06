@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block title %}Review Solution{% endblock %}
+{% block content %}
+<h2>Review Q{{ sol.question.number }} by {{ sol.solver|cutie }}</h2>
+<div class='markdown'>{{ sol.content_md|markdown }}</div>
+<form method='post'>
+    {% csrf_token %}
+    <p>Working?</p>
+    <label><input type='radio' name='is_working' value='yes' required> Yes</label>
+    <label><input type='radio' name='is_working' value='no'> No</label>
+    <p>Comment (optional)</p>
+    <textarea name='comment' rows='3' cols='60'></textarea>
+    <br><button class='btn' type='submit'>Submit Review</button>
+</form>
+{% endblock %}

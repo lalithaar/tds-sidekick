@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Pending approvals{% endblock %}
+{% block content %}
+<h2>Pending approvals</h2>
+{% if pending %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Approval Key</th>
+            <th>Requested at (IST)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for u in pending %}
+        <tr>
+            <td>{{ u.display_name }}</td>
+            <td>{{ u.email }}</td>
+            <td class='mono'>{{ u.approval_key }}</td>
+            <td>{{ u.approval_requested_at|date:"Y-m-d H:i:s T" }}</td>
+            <td>
+                <form method='post' action='{% url "accounts:approve_user" u.pk %}'>
+                    {% csrf_token %}
+                    <button class='btn' type='submit'>Approve</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No pending approvals.</p>
+{% endif %}
+<h3>Approved</h3>
+{% if approved %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>Email</th><th>Approved at (IST)</th><th>Approved by</th></tr>
+    </thead>
+    <tbody>
+    {% for u in approved %}
+        <tr>
+            <td>{{ u.display_name }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.approved_at|date:"Y-m-d H:i:s T" }}</td>
+            <td>{% if u.approved_by %}{{ u.approved_by.display_name|default:u.approved_by.username }}{% else %}-{% endif %}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>None.</p>
+{% endif %}
+{% endblock %}

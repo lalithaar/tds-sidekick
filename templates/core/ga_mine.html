@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block title %}My Tasks{% endblock %}
+{% block content %}
+<h2>{{ ga.title }} – My Tasks</h2>
+<table>
+    <thead>
+        <tr><th>Q#</th><th>Key</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+    {% for s in slots %}
+        <tr>
+            <td>{{ s.question.number }}</td>
+            <td>{{ s.question.key|default:"-" }}</td>
+            <td>
+                {% with sol=sols|get_item:s.question_id %}
+                    {% if sol and sol.submitted_at %}Submitted ({{ sol.status }}){% elif sol %}Draft{% else %}Not started{% endif %}
+                {% endwith %}
+            </td>
+            <td><a href='{% url "core:ga_mine_submit" ga.slug s.id %}'>Submit/Edit</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

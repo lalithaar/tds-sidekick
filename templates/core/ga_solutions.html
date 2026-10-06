@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block title %}Verified Solutions{% endblock %}
+{% block content %}
+<h2>{{ ga.title }} – Verified Solutions</h2>
+{% if not ok %}
+<p class='lock-note'>Locked. Finish these to view verified answers:</p>
+<ul class='plain'>
+    {% for i in checklist %}{% if not i.done %}<li>{% if i.url %}<a href='{{ i.url }}'>{{ i.label }}</a>{% else %}{{ i.label }}{% endif %}</li>{% endif %}{% endfor %}
+</ul>
+{% endif %}
+<table>
+    <thead>
+        <tr><th>Q#</th><th>Solver</th><th>Status</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+    {% for sol in verified %}
+        <tr>
+            <td>{{ sol.question.number }}</td>
+            <td>{{ sol.solver|cutie }}</td>
+            <td>{{ sol.status }}</td>
+            <td>{% if ok %}<a href='{% url "core:ga_solution_detail" ga.slug sol.id %}'>View</a>{% else %}-{% endif %}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

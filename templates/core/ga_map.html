@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block title %}Map{% endblock %}
+{% block content %}
+<h2>{{ ga.title }} – Who handles what</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Q#</th>
+            <th>Key</th>
+            <th>Solvers</th>
+            <th>Your assignment</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for q in questions %}
+        <tr>
+            <td>{{ q.number }}</td>
+            <td>{{ q.key|default:"-" }}</td>
+            <td>
+                {% with sol=q_to_solvers|get_item:q.id %}
+                    {% for s in sol %}
+                        {{ s.user.display_name }} ({{ s.user.email }}){% if not forloop.last %}, {% endif %}
+                    {% empty %}-{% endfor %}
+                {% endwith %}
+            </td>
+            <td>{% if q.id in my_slots %}Yes{% else %}No{% endif %}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

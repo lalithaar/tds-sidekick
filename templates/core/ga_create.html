@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Create GA{% endblock %}
+{% block content %}
+<h2>Create GA</h2>
+<form method='get'>
+    <p><label>Number of questions</label>
+        <select name='num_questions' onchange='this.form.submit()'>
+            {% for i in num_choices %}
+                <option value='{{ i }}' {% if i == n %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+        </select>
+    </p>
+</form>
+<form method='post'>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {{ form.title.errors }}
+    <p><label>Title</label> {{ form.title }}</p>
+    <p>Enter a unique id for each question:</p>
+    <ol>
+        {% for f in form %}{% if f.name|slice:':4' == 'key_' %}<li>{{ f }}</li>{% endif %}{% endfor %}
+    </ol>
+    {{ form.num_questions.as_hidden }}
+    <button class='btn' type='submit'>Create &amp; open poll</button>
+</form>
+{% endblock %}

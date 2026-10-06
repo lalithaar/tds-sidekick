@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Pending approval{% endblock %}
+{% block content %}
+<h2>Account pending approval</h2>
+<p>Thanks. Your account is pending approval.</p>
+<p><strong>Full Name:</strong> {{ user.display_name }}</p>
+<p><strong>Email:</strong> {{ user.email }}</p>
+<p><strong>Approval Key:</strong> <span class='mono'>{{ user.approval_key }}</span></p>
+<hr>
+<p><strong>Send this to admin (24f2006078@ds.study.iitm.ac.in)</strong></p>
+<ul>
+    <li>To: 24f2006078@ds.study.iitm.ac.in</li>
+    <li>Subject: TDS Sidekick Signup – {{ user.email }}</li>
+    <li>Body: include Full Name, Email, Approval Key</li>
+</ul>
+<p>Once verified and approved, you’ll be able to login.</p>
+{% endblock %}

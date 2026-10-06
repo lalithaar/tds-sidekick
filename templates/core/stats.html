@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Stats{% endblock %}
+{% block content %}
+<h2>Stats</h2>
+<div class='cards'>
+    <div class='card'><strong>{{ totals.students }}</strong><span>students</span></div>
+    <div class='card'><strong>{{ totals.pending }}</strong><span>pending</span></div>
+    <div class='card'><strong>{{ totals.gas }}</strong><span>GAs</span></div>
+    <div class='card'><strong>{{ totals.submitted }}</strong><span>submitted</span></div>
+    <div class='card'><strong>{{ totals.verified }}</strong><span>verified</span></div>
+    <div class='card'><strong>{{ totals.reviews }}</strong><span>reviews</span></div>
+</div>
+
+<h3>By GA</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Title</th><th>Status</th><th>Opted in</th><th>Slots</th>
+            <th>Submitted</th><th>Verified</th><th>Reviews</th><th>Completion</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in ga_rows %}
+        <tr>
+            <td><a href='{% url "core:ga_detail" r.ga.slug %}'>{{ r.ga.title }}</a></td>
+            <td>{{ r.ga.get_status_display }}</td>
+            <td>{{ r.opted }}</td>
+            <td>{{ r.slots }}</td>
+            <td>{{ r.submitted }}</td>
+            <td>{{ r.verified }}</td>
+            <td>{{ r.reviews }}</td>
+            <td>{{ r.completion }}%</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan='8'>No GAs yet.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h3>By student</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th><th>Email</th><th>Opt-ins</th><th>Slots</th>
+            <th>Submitted</th><th>Verified</th><th>Reviews given</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in student_rows %}
+        <tr>
+            <td>{{ r.user.display_name }}</td>
+            <td class='mono'>{{ r.user.email }}</td>
+            <td>{{ r.optins }}</td>
+            <td>{{ r.slots }}</td>
+            <td>{{ r.submitted }}</td>
+            <td>{{ r.verified }}</td>
+            <td>{{ r.reviews }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan='7'>No students yet.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% if pending %}
+<h3>Pending approvals ({{ pending|length }})</h3>
+<ul>
+    {% for u in pending %}
+        <li>{{ u.display_name }} <small class='mono'>{{ u.email }}</small> — key <span class='mono'>{{ u.approval_key }}</span></li>
+    {% endfor %}
+</ul>
+<p><a href='{% url "accounts:pending_approvals" %}'>Go to approvals →</a></p>
+{% endif %}
+{% endblock %}

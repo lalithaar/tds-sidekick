@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block title %}Solution{% endblock %}
+{% block content %}
+<h2>Q{{ sol.question.number }} – {{ sol.solver|cutie }}</h2>
+<div class='markdown'>{{ sol.content_md|markdown }}</div>
+{% endblock %}

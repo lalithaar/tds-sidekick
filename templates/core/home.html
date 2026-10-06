@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h2>TDS Sidekick</h2>
+<p class='tagline'>Your study-group sidekick — opt in, split the work, solve, review, and verify together. We're all cooked, let's get cooked together efficiently.</p>
+{% if not user.is_authenticated %}
+    <p>Please <a href='{% url "accounts:login" %}'>login</a> or <a href='{% url "accounts:signup" %}'>sign up</a>.</p>
+{% elif not user.is_approved %}
+    <p>Your account is pending approval. <a href='{% url "accounts:pending" %}'>View approval key</a></p>
+{% else %}
+    {% if is_admin %}
+        <p>Welcome, {{ user.display_name }}.</p>
+    {% elif not has_opted %}
+        <p>Welcome, {{ user.display_name }}. Your account is approved.</p>
+    {% endif %}
+
+    {% if is_admin %}
+        {% if attention %}
+        <h3>Needs attention</h3>
+        <ul class='plain'>
+            {% for a in attention %}
+            <li>
+                {{ a.text }}
+                {% if a.form_action %}
+                <form method='post' action='{{ a.form_action }}' style='display:inline'>{% csrf_token %}<button class='btn'>{{ a.cta }}</button></form>
+                {% else %}
+                <a class='btn' href='{{ a.url }}'>{{ a.cta }}</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class='all-good'>Nothing needs your attention right now.</p>
+        {% endif %}
+
+        <h3>Open assignments</h3>
+        {% if open_cards %}
+        <table class='auto'>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Stage</th>
+                    <th>Progress</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for it in open_cards %}
+                <tr>
+                    <td><a href='{% url "core:ga_detail" it.ga.slug %}'>{{ it.ga.title }}</a></td>
+                    <td>{{ it.ga.get_status_display }}</td>
+                    <td>
+                        {% if it.ga.status == 'assigned' %}
+                            {{ it.stats.coverage }}%
+                        {% elif it.ga.status == 'polling' %}
+                            {{ it.bar_pct }}% opted in
+                            {% if it.ga.is_poll_expired %}<small> · poll closed</small>{% endif %}
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if it.ga.status == 'draft' %}
+                            <form method='post' action='{% url "core:ga_open_poll" it.ga.slug %}' style='display:inline'>{% csrf_token %}<button class='btn'>Open Poll</button></form>
+                        {% elif it.poll_open %}
+                            <form method='post' action='{% url "core:ga_assign" it.ga.slug %}' style='display:inline'>{% csrf_token %}<button class='btn'>Assign</button></form>
+                        {% elif it.ga.status == 'assigned' %}
+                            <form method='post' action='{% url "core:ga_close" it.ga.slug %}' style='display:inline'>{% csrf_token %}<button class='btn'>Close</button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No open assignments.</p>
+        {% endif %}
+
+        {% if closed_rows %}
+        <h3>Closed</h3>
+        <ul class='closed-list'>
+            {% for r in closed_rows %}
+            <li>
+                <a href='{% url "core:ga_detail" r.ga.slug %}'>{{ r.ga.title }}</a>
+                <span class='chip chip-closed'>closed</span>
+                — {{ r.coverage }}% verified
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+    {% else %}
+        {% if steps %}
+        <h3>Next steps</h3>
+        <ul class='plain'>
+            {% for s in steps %}
+            <li><a href='{{ s.url }}'>{{ s.text }}</a></li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <h3>Assignments</h3>
+        {% if open_gas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Your progress</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for it in open_gas %}
+                <tr>
+                    <td><a href='{% url "core:ga_detail" it.ga.slug %}'>{{ it.ga.title }}</a></td>
+                    <td>
+                        {{ it.ga.get_status_display }}
+                        {% if it.poll_open %}<br><small>closes {{ it.ga.poll_closes_at|date:"Y-m-d H:i T" }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% if it.is_opted and it.ga.status == 'polling' %}Opted in{% endif %}
+                        {% if it.my_slots %}
+                            {{ it.submitted }}/{{ it.my_slots }} submitted
+                        {% elif it.ga.status != 'polling' %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if it.poll_open %}
+                            {% if it.is_opted %}<span>✓ Opted in</span>{% else %}<a href='{% url "core:ga_poll" it.ga.slug %}'>Opt in</a>{% endif %}
+                        {% elif it.my_slots %}
+                            <a href='{% url "core:ga_mine" it.ga.slug %}'>My tasks</a> |
+                            <a href='{% url "core:ga_review" it.ga.slug %}'>Review</a> |
+                            <a href='{% url "core:ga_map" it.ga.slug %}'>Map</a> |
+                            <a href='{% url "core:ga_solutions" it.ga.slug %}'>Solutions</a>
+                        {% else %}
+                            <a href='{% url "core:ga_detail" it.ga.slug %}'>View</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No assignments yet.</p>
+        {% endif %}
+
+        {% if closed_gas %}
+        <h3>Closed</h3>
+        <ul class='closed-list'>
+            {% for it in closed_gas %}
+            <li>
+                <a href='{% url "core:ga_detail" it.ga.slug %}'>{{ it.ga.title }}</a>
+                <span class='chip chip-closed'>closed</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    {% endif %}
+{% endif %}
+{% endblock %}

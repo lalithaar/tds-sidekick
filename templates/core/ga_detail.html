@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{{ ga.title }}{% endblock %}
+{% block content %}
+<h2>{{ ga.title }}</h2>
+<p>Status: {{ ga.status }} | Questions: {{ ga.num_questions }}</p>
+{% if is_admin %}
+<div class='ctas'>
+    {% if ga.status == 'draft' %}
+        <form method='post' action='{% url "core:ga_open_poll" ga.slug %}' style='display:inline'>
+            {% csrf_token %}<button class='btn'>Open Poll (72h)</button>
+        </form>
+        <form method='post' action='{% url "core:ga_close" ga.slug %}' style='display:inline'>
+            {% csrf_token %}<button class='link-btn'>Close</button>
+        </form>
+    {% elif ga.status == 'polling' %}
+        <form method='post' action='{% url "core:ga_assign" ga.slug %}' style='display:inline'>
+            {% csrf_token %}<button class='btn'>Assign Randomly</button>
+        </form>
+        <form method='post' action='{% url "core:ga_close" ga.slug %}' style='display:inline'>
+            {% csrf_token %}<button class='link-btn'>Close</button>
+        </form>
+    {% elif ga.status == 'assigned' %}
+        <form method='post' action='{% url "core:ga_close" ga.slug %}' style='display:inline'>
+            {% csrf_token %}<button class='link-btn'>Close Assignment</button>
+        </form>
+    {% endif %}
+</div>
+{% endif %}
+{% if ga.status == 'polling' %}
+    {% if poll_expired %}
+        <p>Poll closed — awaiting assignment.</p>
+    {% else %}
+        <p>Poll closes at {{ ga.poll_closes_at|date:"Y-m-d H:i:s T" }} (IST)</p>
+        {% if not is_admin %}
+            {% if is_opted %}
+                <p>You're opted in.</p>
+            {% else %}
+                <a class='btn' href='{% url "core:ga_poll" ga.slug %}'>Opt-in</a>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endif %}
+{% if ga.status == 'assigned' or ga.status == 'closed' %}
+    <p><a href='{% url "core:ga_map" ga.slug %}'>Map (Who handles what)</a></p>
+    {% if not is_admin %}
+    <p><a href='{% url "core:ga_mine" ga.slug %}'>My Tasks</a></p>
+    <p><a href='{% url "core:ga_review" ga.slug %}'>Review</a></p>
+    {% endif %}
+    <p><a href='{% url "core:ga_solutions" ga.slug %}'>Verified Solutions</a></p>
+{% endif %}
+
+{% if is_admin %}
+    <details>
+        <summary><strong>Lifecycle</strong></summary>
+        <ul class='timeline'>
+            <li class='{% if ga.status == "draft" %}current{% endif %}'>Created {{ ga.created_at|date:"Y-m-d H:i" }}</li>
+            {% if ga.poll_opened_at %}
+            <li class='{% if ga.status == "polling" %}current{% endif %}'>
+                Poll opened {{ ga.poll_opened_at|date:"Y-m-d H:i" }}
+                {% if ga.poll_closes_at %} · closes {{ ga.poll_closes_at|date:"Y-m-d H:i" }}{% endif %}
+                {% if ga.is_poll_expired %} · <em>closed, ready to assign</em>{% endif %}
+            </li>
+            {% endif %}
+            {% if ga.assigned_at %}<li class='{% if ga.status == "assigned" %}current{% endif %}'>Assigned {{ ga.assigned_at|date:"Y-m-d H:i" }}</li>{% endif %}
+            {% if ga.closed_at %}<li class='current'>Closed {{ ga.closed_at|date:"Y-m-d H:i" }}</li>{% endif %}
+        </ul>
+    </details>
+
+    <details style='margin-top: 12px'>
+        <summary><strong>Stats</strong></summary>
+        <div class='cards'>
+        <div class='card'><strong>{{ ga_stats.opted }}/{{ ga_stats.eligible }}</strong><span>opted in</span></div>
+        <div class='card'><strong>{{ ga_stats.submitted }}/{{ ga_stats.slots }}</strong><span>slots submitted</span></div>
+        <div class='card'><strong>{{ ga_stats.reviews }}</strong><span>reviews given</span></div>
+        <div class='card'><strong>{{ ga_stats.verified }}/{{ ga_stats.slots }}</strong><span>verified</span></div>
+    </div>
+    {% if ga_stats.per_question %}
+    <table>
+        <thead><tr><th>Q#</th><th>Key</th><th>Solvers</th><th>Submitted</th><th>Verified</th></tr></thead>
+        <tbody>
+        {% for row in ga_stats.per_question %}
+            <tr>
+                <td>{{ row.q.number }}</td>
+                <td class='mono'>{{ row.q.key|default:"-" }}</td>
+                <td>{{ row.slots }}</td>
+                <td>{{ row.submitted }}</td>
+                <td>{{ row.verified }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    </details>
+
+    <details style='margin-top: 12px'>
+        <summary><strong>Participants ({{ opted_users|length }})</strong></summary>
+        <ul style='margin-top: 4px'>
+            {% for u in opted_users %}
+                <li>{{ u.display_name }} <small class='mono'>{{ u.email }}</small></li>
+            {% empty %}
+                <li>No one yet.</li>
+            {% endfor %}
+        </ul>
+    </details>
+
+    <details style='margin-top: 12px'>
+    <summary><strong>Edit Questions</strong></summary>
+    <form method='post'>
+        {% csrf_token %}
+        <input type='hidden' name='action' value='save_questions'>
+        {{ question_formset.management_form }}
+        <ol style='list-style: none; padding-left: 0; margin: 0'>
+            {% for f in question_formset %}
+            <li style='margin-bottom: 6px'>
+                {{ f.id }}{{ f.number.as_hidden }}{{ f.order.as_hidden }}
+                <label for='{{ f.key.id_for_label }}'>{{ f.number.value|default:forloop.counter }}.</label>
+                {{ f.key }}
+                {% if f.instance.pk %}{{ f.DELETE }} <label for='{{ f.DELETE.id_for_label }}' style='color: #900'>delete</label>{% endif %}
+            </li>
+            {% endfor %}
+        </ol>
+        <button class='btn' type='submit'>Save questions</button>
+    </form>
+    </details>
+{% endif %}
+{% endblock %}

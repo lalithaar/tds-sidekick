@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>{% block title %}TDS Sidekick{% endblock %}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 20px; }
+        nav { display: flex; align-items: center; gap: 10px; }
+        .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        table.auto { width: auto; }
+        nav, main { max-width: 70ch; margin-left: auto; margin-right: auto; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        .mono { font-family: monospace; }
+        .btn { padding: 6px 10px; min-width: 100px; }
+        nav .btn { min-width: auto; }
+        .link-btn { background: none; border: none; color: #b71c1c; text-decoration: underline; cursor: pointer; padding: 6px 0; font: inherit; }
+        .ctas { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .tagline { margin-top: -4px; }
+        .cards { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+        .card { border: 1px solid #ccc; border-radius: 6px; padding: 10px 14px; min-width: 90px; text-align: center; }
+        .card strong { display: block; font-size: 1.4em; }
+        .card span { font-size: .85em; color: #444; }
+        .story { max-width: 340px; }
+        .timeline { list-style: none; padding-left: 0; }
+        .timeline li { padding: 3px 0 3px 16px; border-left: 2px solid #ccc; margin-left: 6px; }
+        .timeline li.current { border-left-color: #333; font-weight: 600; }
+
+        .attention, .plain { list-style: none; padding-left: 0; }
+        .attention li, .plain li { margin-bottom: 5px; }
+        .lvl-high { color: #b71c1c; }
+        .lvl-warn { color: #8d6e00; }
+        .all-good { color: #2e7d32; }
+        .muted { color: #666; }
+
+        .chip { font-size: .75em; padding: 2px 8px; border-radius: 10px; background: #eee; color: #555; margin: 0 6px 0 10px; }
+        .closed-list { list-style: none; padding: 0; }
+        .closed-list li { padding: 5px 0; border-bottom: 1px dotted #ccc; }
+        .closed-list a, .closed-list .chip { display: inline-block;}
+        .messages { list-style: none; padding: 8px; margin: 8px 0; background: #eef; border: 1px solid #ccf; }
+        .messages .success { color: #060; }
+        .messages .error { color: #900; }
+        .form-errors { color: #b71c1c; }
+        .md-editor { width: 100%; font-family: inherit; height: 320px; box-sizing: border-box; }
+        .md-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+        .md-col label { font-weight: 600; display: block; margin-bottom: 4px; }
+        .preview { border: 1px solid #ccc; padding: 10px; height: 320px; overflow-y: auto; box-sizing: border-box; overflow-wrap: break-word; }
+        .markdown { line-height: 1.5; overflow-wrap: break-word; }
+        .markdown h1, .markdown h2, .markdown h3 { margin: 0.8em 0 0.4em; }
+        .markdown pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        .markdown code { font-family: monospace; }
+        .markdown blockquote { border-left: 3px solid #ccc; margin-left: 0; padding-left: 12px; color: #444; }
+        .markdown table { margin-top: 6px; }
+        .markdown img { max-width: 100%; }
+        @media (max-width: 700px) { .md-grid { grid-template-columns: 1fr; } }
+        body.editor-page main { max-width: 110ch; }
+        body.editor-page .md-grid { gap: 28px; margin-top: 16px; }
+        body.editor-page .md-col label { margin-bottom: 8px; }
+        body.editor-page .md-col .muted { margin-bottom: 8px; }
+        body.editor-page .md-editor, body.editor-page .preview { height: 360px; }
+        .codehilite pre { line-height: 125%; }
+        .codehilite { background: #f8f8f8; }
+        .codehilite .hll { background-color: #ffffcc }
+        .codehilite .c, .codehilite .ch, .codehilite .cm, .codehilite .cpf, .codehilite .c1, .codehilite .cs { color: #3D7B7B; font-style: italic }
+        .codehilite .err { border: 1px solid #F00 }
+        .codehilite .k, .codehilite .kd, .codehilite .kn { color: #008000; font-weight: bold }
+        .codehilite .o { color: #666 }
+        .codehilite .cp { color: #9C6500 }
+        .codehilite .gd { color: #A00000 }
+        .codehilite .ge { font-style: italic }
+        .codehilite .gr { color: #E40000 }
+        .codehilite .gh { color: #000080; font-weight: bold }
+        .codehilite .gi { color: #008400 }
+        .codehilite .go { color: #717171 }
+        .codehilite .gp { color: #000080; font-weight: bold }
+        .codehilite .gs { font-weight: bold }
+        .codehilite .gu { color: #800080; font-weight: bold }
+        .codehilite .gt { color: #04D }
+        .codehilite .kc, .codehilite .kr { color: #008000; font-weight: bold }
+        .codehilite .kp, .codehilite .nb, .codehilite .sx, .codehilite .bp { color: #008000 }
+        .codehilite .kt { color: #B00040 }
+        .codehilite .m, .codehilite .mb, .codehilite .mf, .codehilite .mh, .codehilite .mi, .codehilite .mo, .codehilite .il { color: #666 }
+        .codehilite .s, .codehilite .sa, .codehilite .sb, .codehilite .sc, .codehilite .dl, .codehilite .s2, .codehilite .sh, .codehilite .s1 { color: #BA2121 }
+        .codehilite .sd { color: #BA2121; font-style: italic }
+        .codehilite .se { color: #AA5D1F; font-weight: bold }
+        .codehilite .si { color: #A45A77; font-weight: bold }
+        .codehilite .sr { color: #A45A77 }
+        .codehilite .ss { color: #19177C }
+        .codehilite .na { color: #687822 }
+        .codehilite .nc { color: #00F; font-weight: bold }
+        .codehilite .no { color: #800 }
+        .codehilite .nd { color: #A2F }
+        .codehilite .ni { color: #717171; font-weight: bold }
+        .codehilite .ne { color: #CB3F38; font-weight: bold }
+        .codehilite .nf { color: #00F }
+        .codehilite .nl { color: #767600 }
+        .codehilite .nn { color: #00F; font-weight: bold }
+        .codehilite .nt { color: #008000; font-weight: bold }
+        .codehilite .nv { color: #19177C }
+        .codehilite .ow { color: #A2F; font-weight: bold }
+        .codehilite .w { color: #BBB }
+        .codehilite .vm { color: #19177C }
+        .codehilite .fm { color: #00F }
+    </style>
+</head>
+<body class="{% block body_class %}default{% endblock %}">
+    <nav>
+        <a href='/'>Home</a>
+        {% if user.is_authenticated %}
+            {% if user.role == "admin" or user.is_staff or user.is_superuser %}
+                <a href='{% url "core:ga_create_new" %}'>Create GA</a>
+                <a href='{% url "accounts:pending_approvals" %}'>Approvals{% if nav_pending_count %} ({{ nav_pending_count }}){% endif %}</a>
+                <a href='{% url "core:system_stats" %}'>Stats</a>
+            {% endif %}
+            <span class='nav-right'>
+                <span>{{ user.display_name }} ({{ user.email }})</span>
+                <form method='post' action='{% url "accounts:logout" %}' style='display:inline'>
+                    {% csrf_token %}
+                    <button class='btn' type='submit'>Logout</button>
+                </form>
+            </span>
+        {% else %}
+            <span class='nav-right'>
+                <a href='{% url "accounts:login" %}'>Login</a>
+                <a href='{% url "accounts:signup" %}'>Sign up</a>
+            </span>
+        {% endif %}
+    </nav>
+    <hr>
+    {% if messages %}
+        <ul class='messages'>
+            {% for m in messages %}<li class='{{ m.tags }}'>{{ m }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+<main>
+    {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

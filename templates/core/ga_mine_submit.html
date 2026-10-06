@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block body_class %}editor-page{% endblock %}
+{% block title %}Submit Q{{ slot.question.number }}{% endblock %}
+{% block content %}
+<h2>{{ ga.title }} – Submit Q{{ slot.question.number }}</h2>
+<p class='muted'>Write your step-by-step solution. Markdown is supported — preview updates as you type.</p>
+<div class='md-grid'>
+    <form method='post' class='md-col'>
+        {% csrf_token %}
+        {% if form.errors %}<p class='form-errors'>{{ form.errors }}</p>{% endif %}
+        <label for='{{ form.content_md.id_for_label }}'>{{ form.content_md.label }}</label>
+        {{ form.content_md }}
+        <button class='btn' type='submit' style='margin-top: 8px'>Submit</button>
+    </form>
+    <div class='md-col'>
+        <p class='muted'>Preview</p>
+        <div class='markdown preview' id='md-preview'></div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    var ta = document.getElementById('{{ form.content_md.id_for_label }}');
+    var out = document.getElementById('md-preview');
+    var url = '{% url "core:ga_mine_preview" ga.slug slot.id %}';
+    var timer = null;
+    function csrfHeader() {
+        var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
+    function render() {
+        fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfHeader()},
+            body: 'content=' + encodeURIComponent(ta.value),
+            credentials: 'same-origin',
+        }).then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.json();
+        }).then(function (d) { out.innerHTML = d.html; })
+          .catch(function () {});
+    }
+    ta.addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(render, 250);
+    });
+    render();
+})();
+</script>
+{% endblock %}

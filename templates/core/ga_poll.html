@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Poll{% endblock %}
+{% block content %}
+<h2>{{ ga.title }} – Poll</h2>
+<p>Status: {{ ga.status }}</p>
+{% if ga.status == 'polling' and not poll_expired %}
+<p>Closes: {{ ga.poll_closes_at|date:"Y-m-d H:i:s T" }} (IST)</p>
+{% if not is_admin %}
+{% if is_opted %}
+<p>You're opted in.</p>
+{% else %}
+<form method='post'>
+    {% csrf_token %}
+    <button class='btn' type='submit'>Opt-in for collaboration</button>
+</form>
+{% endif %}
+{% endif %}
+{% elif ga.status == 'polling' %}
+<p>Poll closed — awaiting assignment.</p>
+{% else %}
+<p>Poll not active.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load dict_extras %}
+{% block title %}Review{% endblock %}
+{% block content %}
+<h2>{{ ga.title }} – Review</h2>
+<p>Reviews done: {{ reviews_done }} (need >= 2)</p>
+<table>
+    <thead>
+        <tr><th>Q#</th><th>Solver</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+    {% for sol in eligible %}
+        <tr>
+            <td>{{ sol.question.number }}</td>
+            <td>{{ sol.solver|cutie }}</td>
+            <td>{{ sol.status }}</td>
+            <td><a href='{% url "core:ga_review_solution" ga.slug sol.id %}'>Review</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
