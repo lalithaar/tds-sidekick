@@ -44,8 +44,12 @@ runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirem
 
 echo "==> Environment file"
 mkdir -p "$ENV_DIR"
+SECRET_KEY=$(grep '^SECRET_KEY=' "$ENV_DIR/env" 2>/dev/null | cut -d= -f2-)
+if [ -z "$SECRET_KEY" ]; then
+    SECRET_KEY=$("$APP_DIR/.venv/bin/python" -c "import secrets; print(secrets.token_urlsafe(50))")
+fi
 cat > "$ENV_DIR/env" <<ENV
-SECRET_KEY=$($APP_DIR/.venv/bin/python -c "import secrets; print(secrets.token_urlsafe(50))")
+SECRET_KEY=$SECRET_KEY
 DJANGO_DEBUG=false
 ALLOWED_HOSTS=$DOMAIN
 CSRF_TRUSTED_ORIGINS=https://$DOMAIN
