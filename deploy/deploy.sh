@@ -37,10 +37,10 @@ chown -R "$APP_USER:$APP_GROUP" "$APP_DIR"
 
 echo "==> venv + deps"
 if [ ! -x "$APP_DIR/.venv/bin/python" ]; then
-    sudo -u "$APP_USER" python3 -m venv "$APP_DIR/.venv"
+    runuser -u "$APP_USER" -- python3 -m venv "$APP_DIR/.venv"
 fi
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade pip
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/pip" install --upgrade pip
+runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
 
 echo "==> Environment file"
 mkdir -p "$ENV_DIR"
@@ -53,8 +53,8 @@ ENV
 chmod 600 "$ENV_DIR/env"
 
 echo "==> Migrate + collectstatic"
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" migrate --noinput
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" collectstatic --noinput
+runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" migrate --noinput
+runuser -u "$APP_USER" -- "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" collectstatic --noinput
 
 echo "==> systemd unit"
 cp deploy/tds-sidekick.service /etc/systemd/system/tds-sidekick.service
@@ -75,7 +75,7 @@ certbot --nginx -d "$DOMAIN" --redirect --agree-tos -m admin@$DOMAIN
 echo
 echo "DONE. App should be live at https://$DOMAIN"
 echo "Next: create your admin account:"
-echo "    sudo -u $APP_USER $APP_DIR/.venv/bin/python $APP_DIR/manage.py createsuperuser"
+echo "    runuser -u $APP_USER -- $APP_DIR/.venv/bin/python $APP_DIR/manage.py createsuperuser"
 echo
 echo "Useful:"
 echo "    systemctl status tds-sidekick      # app logs: journalctl -u tds-sidekick"
