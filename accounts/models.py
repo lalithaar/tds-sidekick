@@ -42,5 +42,10 @@ class User(AbstractUser):
         self.approval_requested_at = timezone.now()
         return key
 
+    def save(self, *args, **kwargs):
+        if self.role == self.Role.ADMIN and not (self.is_superuser or self.is_staff):
+            self.role = self.Role.PARTICIPANT
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.display_name or self.username
