@@ -29,7 +29,7 @@ id -u "$APP_USER" &>/dev/null || useradd --system --home "$APP_DIR" --shell /usr
 
 echo "==> App source"
 if [ -d "$APP_DIR/.git" ]; then
-    git -C "$APP_DIR" pull --ff-only
+    runuser -u "$APP_USER" -- git -C "$APP_DIR" pull --ff-only
 else
     git clone "$REPO_URL" "$APP_DIR"
 fi
