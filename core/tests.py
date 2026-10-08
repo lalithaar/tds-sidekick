@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
-from core.models import Assignment, AssignmentSlot, Participation, Question, Solution, Validation
+from core.models import Assignment, AssignmentSlot, Participation, Question, Solution, Validation, ResubmitNotice
 from core.views import _review_cap, _reviewer_allowed
 
 
@@ -248,3 +248,101 @@ class HomeNudgeTests(ReviewQueueBase):
         self.client.force_login(self.stranger)
         resp = self.client.get(reverse('core:home'))
         self.assertEqual(resp.context['review_nudges'], [])
+
+
+class HomeFollowUpTests(ReviewQueueBase):
+    def test_no_all_done_when_fixes_pending(self):
+        # carol has submitted everything and done her 2 reviews,
+        # so no "steps" remain — but one of her solutions needs fixes
+        for sol in (self.sols[(self.bob, 3)], self.sols[(self.dave, 3)]):
+            Validation.objects.create(solution=sol, reviewer=self.carol, is_working=True, comment='ok')
+        own = self.sols[(self.carol, 1)]
+        own.status = Solution.Status.NEEDS_FIX
+        own.save(update_fields=['status'])
+
+        self.client.force_login(self.carol)
+        resp = self.client.get(reverse('core:home'))
+        content = resp.content.decode()
+        self.assertNotIn('all done', content)
+        self.assertIn('Fix needed', content)
+        self.assertNotIn('color:#900', content)
+
+    def test_all_done_shown_when_nothing_pending(self):
+        # everyone verifies everything and carol has done her 2 reviews
+        for sol in self.sols.values():
+            reviewers = [u for u in (self.alice, self.bob, self.carol, self.dave, self.erin)
+                         if u != sol.solver]
+            for u in reviewers[:2]:
+                Validation.objects.get_or_create(
+                    solution=sol, reviewer=u, defaults={'is_working': True, 'comment': 'ok'})
+            sol.status = Solution.Status.VERIFIED
+            sol.verifier_count = 2
+            sol.save(update_fields=['status', 'verifier_count'])
+        for sol in (self.sols[(self.bob, 3)], self.sols[(self.dave, 3)]):
+            Validation.objects.get_or_create(
+                solution=sol, reviewer=self.carol,
+                defaults={'is_working': True, 'comment': 'ok'})
+
+        self.client.force_login(self.carol)
+        resp = self.client.get(reverse('core:home'))
+        content = resp.content.decode()
+        self.assertIn('all done', content)
+        self.assertNotIn('Fix needed', content)
+
+
+class ResubmitNoticeTests(ReviewQueueBase):
+    """A reviewer who flagged a solution gets nudged when the author resubmits."""
+
+    def flag_and_resubmit(self):
+        sol = self.sols[(self.carol, 1)]
+        self.client.force_login(self.dave)
+        self.post_review(self.dave, sol, working=True)
+        self.client.force_login(self.bob)
+        self.post_review(self.bob, sol, working=False, comment='step 3 fails')
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, Solution.Status.NEEDS_FIX)
+
+        slot = AssignmentSlot.objects.get(
+            assignment=self.ga, user=self.carol, question=self.qs[0])
+        self.client.force_login(self.carol)
+        resp = self.client.post(
+            reverse('core:ga_mine_submit', args=[self.ga.slug, slot.id]),
+            {'content_md': 'fixed: step by step'},
+        )
+        self.assertEqual(resp.status_code, 302)
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, Solution.Status.SUBMITTED)
+        return sol
+
+    def test_notice_only_for_reviewers_who_flagged(self):
+        sol = self.flag_and_resubmit()
+        notices = ResubmitNotice.objects.filter(solution=sol)
+        self.assertEqual(notices.count(), 1)
+        self.assertEqual(notices.get().reviewer, self.bob)
+
+        self.client.force_login(self.bob)
+        content = self.client.get(reverse('core:home')).content.decode()
+        self.assertIn('Take another look', content)
+        self.assertIn(self.review_url(sol), content)
+
+        self.client.force_login(self.dave)
+        content = self.client.get(reverse('core:home')).content.decode()
+        self.assertNotIn('another look', content)
+
+    def test_notice_clears_after_re_review(self):
+        sol = self.flag_and_resubmit()
+        self.client.force_login(self.bob)
+        self.post_review(self.bob, sol, working=True)
+        content = self.client.get(reverse('core:home')).content.decode()
+        self.assertNotIn('another look', content)
+
+    def test_notice_hidden_once_verified(self):
+        sol = self.flag_and_resubmit()
+        for reviewer in (self.dave, self.erin):
+            self.client.force_login(reviewer)
+            self.post_review(reviewer, sol, working=True)
+        sol.refresh_from_db()
+        self.assertEqual(sol.status, Solution.Status.VERIFIED)
+        self.client.force_login(self.bob)
+        content = self.client.get(reverse('core:home')).content.decode()
+        self.assertNotIn('another look', content)

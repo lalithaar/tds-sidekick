@@ -12,7 +12,7 @@ from accounts.mixins import ApprovedRequiredMixin
 from accounts.models import User
 from .forms import AssignmentForm, GACreateForm, QuestionFormSet, SolutionForm
 from .markdown_util import render_markdown
-from .models import Assignment, Participation, AssignmentSlot, Solution, Validation, Question
+from .models import Assignment, Participation, AssignmentSlot, Solution, Validation, ResubmitNotice, Question
 from .services.assignment import assign_randomly
 
 
@@ -117,6 +117,17 @@ def home(request):
                              f"but yours would help."),
                 })
             ctx['review_nudges'] = review_nudges
+            rechecks = (
+                ResubmitNotice.objects
+                .filter(reviewer=user, solution__status=Solution.Status.SUBMITTED)
+                .exclude(solution__validations__reviewer=user)
+                .select_related('solution__assignment', 'solution__question')
+            )
+            ctx['recheck_notices'] = [
+                {'title': n.solution.assignment.title, 'slug': n.solution.assignment.slug,
+                 'qnum': n.solution.question.number, 'sol_id': n.solution.id}
+                for n in rechecks
+            ]
     return render(request, 'core/home.html', ctx)
 
 
@@ -656,6 +667,8 @@ def ga_mine_submit(request, slug, slot_id):
             sol.last_reviewed_at = None
             sol.save()
             if was_submitted:
+                for v in Validation.objects.filter(solution=sol, is_working=False):
+                    ResubmitNotice.objects.get_or_create(solution=sol, reviewer=v.reviewer)
                 Validation.objects.filter(solution=sol).delete()
             messages.success(request, 'Solution submitted (awaiting reviews).')
             return redirect('core:ga_mine', slug=ga.slug)

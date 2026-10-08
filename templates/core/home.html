@@ -93,7 +93,7 @@
         {% endif %}
 
     {% else %}
-        {% if steps or pending_verify or needs_fix_home or review_nudges %}
+        {% if steps or pending_verify or needs_fix_home or review_nudges or recheck_notices %}
         <h3>Next steps</h3>
         {% if steps %}
         <ul class='plain'>
@@ -101,18 +101,23 @@
             <li>{% if s.url %}<a href='{{ s.url }}'>{{ s.text }}</a>{% else %}{{ s.text }}{% endif %}</li>
             {% endfor %}
         </ul>
-        {% elif not review_nudges %}
-        <p class='all-good'>You're all done — wait for the next GA release and take a break.</p>
         {% endif %}
+        {% for rc in recheck_notices %}
+        <p class='muted'>You flagged Q{{ rc.qnum }} in "{{ rc.title }}" as not working — the author has resubmitted it. <a href='{% url "core:ga_review_solution" rc.slug rc.sol_id %}'>Take another look</a>.</p>
+        {% endfor %}
         {% for pv in pending_verify %}
         <p class='muted'>Heads up: {% for n in pv.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ pv.title }}" still need a teammate's working marks before verified answers unlock.</p>
         {% endfor %}
         {% for nf in needs_fix_home %}
-        <p class='muted' style='color:#900'><strong>Fix needed:</strong> {% for n in nf.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ nf.title }}" still needs fixes — see <a href='{% url "core:ga_mine" nf.slug %}'>My Tasks</a> for review comments.</p>
+        <p class='muted'><strong>Fix needed:</strong> {% for n in nf.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ nf.title }}" still needs fixes — see <a href='{% url "core:ga_mine" nf.slug %}'>My Tasks</a> for review comments.</p>
         {% endfor %}
         {% for rn in review_nudges %}
         <p class='muted'>{{ rn.text }} <a href='{% url "core:ga_review" rn.slug %}'>Have a look</a></p>
         {% endfor %}
+        {% else %}
+        {% if has_opted %}
+        <p class='all-good'>You're all done — wait for the next GA release and take a break.</p>
+        {% endif %}
         {% endif %}
 
         <h3>Assignments</h3>

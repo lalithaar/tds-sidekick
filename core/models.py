@@ -116,6 +116,18 @@ class Validation(models.Model):
         ordering = ('reviewed_at',)
 
 
+class ResubmitNotice(models.Model):
+    """Created when a solution the reviewer flagged as not-working gets
+    resubmitted — used to nudge the reviewer to take another look."""
+    solution = models.ForeignKey(Solution, on_delete=models.CASCADE, related_name='recheck_notices')
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='recheck_notices')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('solution', 'reviewer')
+        ordering = ('-created_at',)
+
+
 class SolutionAttachment(models.Model):
     solution = models.ForeignKey(Solution, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='solutions/%Y/%m/%d/')
