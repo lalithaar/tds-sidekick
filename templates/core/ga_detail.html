@@ -115,7 +115,7 @@
                 {{ f.id }}{{ f.number.as_hidden }}{{ f.order.as_hidden }}
                 <label for='{{ f.key.id_for_label }}'>{{ f.number.value|default:forloop.counter }}.</label>
                 {{ f.key }}
-                {% if f.instance.pk %}{{ f.DELETE }} <label for='{{ f.DELETE.id_for_label }}' style='color: #900'>delete</label>{% endif %}
+                {% if f.instance.pk %}{{ f.DELETE }} <label for='{{ f.DELETE.id_for_label }}' class='delete-warn'>delete</label>{% endif %}
             </li>
             {% endfor %}
         </ol>
