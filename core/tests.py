@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
-from core.models import Assignment, AssignmentSlot, Participation, Question, Solution, Validation, ResubmitNotice
+from core.models import Assignment, AssignmentSlot, Participation, Question, Solution, Validation, ResubmitNotice, ReviewLog
 from core.views import _review_cap, _reviewer_allowed
 
 
@@ -370,3 +370,87 @@ class ResubmitNoticeTests(ReviewQueueBase):
         self.client.force_login(self.bob)
         content = self.client.get(reverse('core:home')).content.decode()
         self.assertNotIn('another look', content)
+
+
+class ReviewHistoryTests(ReviewQueueBase):
+    def history(self, user):
+        self.client.force_login(user)
+        resp = self.client.get(reverse('core:ga_review', args=[self.ga.slug]))
+        return list(resp.context['my_reviews']), resp
+
+    def test_review_writes_one_log_row(self):
+        sol = self.sols[(self.carol, 1)]
+        self.client.force_login(self.dave)
+        self.post_review(self.dave, sol, working=False, comment='step 2 breaks')
+        log = ReviewLog.objects.get()
+        self.assertEqual((log.reviewer, log.solver, log.question, log.solution),
+                         (self.dave, self.carol, self.qs[0], sol))
+        self.assertFalse(log.is_working)
+        self.assertEqual(log.comment, 'step 2 breaks')
+        self.assertEqual(log.reviewed_at, sol.validations.get().reviewed_at)
+
+    def test_only_own_reviews_for_this_ga(self):
+        self.client.force_login(self.dave)
+        self.post_review(self.dave, self.sols[(self.carol, 1)])
+        self.client.force_login(self.erin)
+        self.post_review(self.erin, self.sols[(self.bob, 2)])
+
+        other = Assignment.objects.create(title='GA2', status=Assignment.Status.ASSIGNED, num_questions=1)
+        oq = Question.objects.create(assignment=other, number=1)
+        osol = Solution.objects.create(assignment=other, question=oq, solver=self.bob,
+                                       content_md='x', status=Solution.Status.SUBMITTED,
+                                       submitted_at=timezone.now())
+        ReviewLog.objects.create(assignment=other, question=oq, solution=osol, solver=self.bob,
+                                 reviewer=self.dave, is_working=True)
+
+        rows, resp = self.history(self.dave)
+        self.assertEqual([r.solution for r in rows], [self.sols[(self.carol, 1)]])
+        self.assertContains(resp, 'Your reviews (1)')
+        self.assertNotContains(resp, 'my answer')  # metadata only, no solution content
+
+    def test_history_survives_resubmit(self):
+        sol = self.sols[(self.carol, 1)]
+        self.client.force_login(self.dave)
+        self.post_review(self.dave, sol, working=True)
+        self.client.force_login(self.bob)
+        self.post_review(self.bob, sol, working=False, comment='step 3 fails')
+
+        slot = AssignmentSlot.objects.get(assignment=self.ga, user=self.carol, question=self.qs[0])
+        self.client.force_login(self.carol)
+        self.client.post(reverse('core:ga_mine_submit', args=[self.ga.slug, slot.id]),
+                         {'content_md': 'fixed'})
+
+        # existing flow unchanged: validations still wiped on resubmit
+        self.assertFalse(Validation.objects.filter(solution=sol).exists())
+        self.assertEqual(ReviewLog.objects.filter(solution=sol, superseded_at__isnull=False).count(), 2)
+
+        rows, resp = self.history(self.bob)
+        self.assertEqual(len(rows), 1)
+        self.assertContains(resp, 'Re-check</a>')  # only the flagger gets the re-check link
+        self.assertContains(resp, "<details style='margin-top: 12px' open>")  # auto-opens for re-check
+
+        _, resp = self.history(self.dave)
+        self.assertContains(resp, 'Resubmitted')
+        self.assertNotContains(resp, 'Re-check</a>')
+        self.assertNotContains(resp, "<details style='margin-top: 12px' open>")
+
+    def test_history_shown_at_review_limit(self):
+        # alice never submits Q1, so she is capped at 2 reviews
+        self.client.force_login(self.alice)
+        self.post_review(self.alice, self.sols[(self.bob, 2)])
+        self.post_review(self.alice, self.sols[(self.bob, 3)])
+        rows, resp = self.history(self.alice)
+        self.assertTrue(resp.context['at_limit'])
+        self.assertEqual(len(rows), 2)
+
+    def test_backfill_copies_existing_validations(self):
+        import importlib
+        from django.apps import apps
+        mig = importlib.import_module('core.migrations.0003_reviewlog')
+
+        sol = self.sols[(self.erin, 2)]
+        v = Validation.objects.create(solution=sol, reviewer=self.carol, is_working=False, comment='nope')
+        mig.backfill_from_validations(apps, None)
+        log = ReviewLog.objects.get()
+        self.assertEqual((log.reviewer, log.solver, log.question, log.comment, log.reviewed_at),
+                         (self.carol, self.erin, self.qs[1], 'nope', v.reviewed_at))

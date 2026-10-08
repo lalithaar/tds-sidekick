@@ -13,7 +13,7 @@ from accounts.mixins import ApprovedRequiredMixin
 from accounts.models import User
 from .forms import AssignmentForm, GACreateForm, QuestionFormSet, SolutionForm
 from .markdown_util import render_markdown
-from .models import Assignment, Participation, AssignmentSlot, Solution, Validation, ResubmitNotice, Question
+from .models import Assignment, Participation, AssignmentSlot, Solution, Validation, ResubmitNotice, Question, ReviewLog
 from .services.assignment import assign_randomly
 
 
@@ -668,6 +668,8 @@ def ga_mine_submit(request, slug, slot_id):
             sol.last_reviewed_at = None
             sol.save()
             if was_submitted:
+                ReviewLog.objects.filter(solution=sol, superseded_at__isnull=True).update(
+                    superseded_at=sol.submitted_at)
                 for v in Validation.objects.filter(solution=sol, is_working=False):
                     ResubmitNotice.objects.get_or_create(solution=sol, reviewer=v.reviewer)
                 Validation.objects.filter(solution=sol).delete()
@@ -716,6 +718,14 @@ def ga_review(request, slug):
     at_limit = allowed is not None and reviews_done >= allowed
     if allowed == 0 or at_limit:
         eligible = Solution.objects.none()
+    my_reviews = (ReviewLog.objects.filter(assignment=ga, reviewer=request.user)
+                  .select_related('question', 'solver', 'solution'))
+    recheck_ids = set(
+        ResubmitNotice.objects.filter(reviewer=request.user, solution__assignment=ga,
+                                      solution__status=Solution.Status.SUBMITTED)
+        .exclude(solution__validations__reviewer=request.user)
+        .values_list('solution_id', flat=True)
+    )
     return render(request, 'core/ga_review.html', {
         'ga': ga,
         'eligible': eligible,
@@ -725,6 +735,8 @@ def ga_review(request, slug):
         'not_opted': allowed == 0,
         'locked_qnums': locked_qnums,
         'my_qs': {s.question_id for s in my_slots},
+        'my_reviews': my_reviews,
+        'recheck_ids': recheck_ids,
     })
 
 
@@ -779,10 +791,14 @@ def ga_review_solution(request, slug, solution_id):
             messages.error(request, 'Please say what went wrong — the writer needs to know what to fix.')
             return render(request, 'core/ga_review_solution.html', {'ga': ga, 'sol': sol})
         try:
-            Validation.objects.create(solution=sol, reviewer=request.user, is_working=is_working, comment=comment)
+            v = Validation.objects.create(solution=sol, reviewer=request.user, is_working=is_working, comment=comment)
         except IntegrityError:
             messages.info(request, 'Already reviewed this solution.')
             return redirect('core:ga_review', slug=ga.slug)
+        ReviewLog.objects.create(
+            assignment=ga, question=sol.question, solution=sol, solver=sol.solver,
+            reviewer=request.user, is_working=is_working, comment=comment, reviewed_at=v.reviewed_at,
+        )
         sol.last_reviewed_at = timezone.now()
         if is_working:
             sol.verifier_count += 1

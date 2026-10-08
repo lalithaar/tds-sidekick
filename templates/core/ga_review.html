@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load dict_extras %}
 {% block title %}Review{% endblock %}
+{% block body_class %}wide-page{% endblock %}
 {% block content %}
 <h2>{{ ga.title }} – Review</h2>
 {% if not_opted %}
@@ -32,6 +33,38 @@
 </table>
 {% else %}
 <p class='muted'>Nothing to review yet — check back once teammates submit solutions.</p>
+{% endif %}
+{% if my_reviews %}
+<details style='margin-top: 12px'{% if recheck_ids %} open{% endif %}>
+<summary><strong>Your reviews ({{ my_reviews|length }})</strong></summary>
+<div class='table-scroll'>
+<table class='compact'>
+    <thead>
+        <tr><th>Q#</th><th>Author</th><th>Verdict</th><th>Comment</th><th>Reviewed</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+    {% for r in my_reviews %}
+        <tr>
+            <td>{{ r.question.number }}</td>
+            <td>{{ r.solver|cutie }}</td>
+            <td>{% if r.is_working %}Working{% else %}Not working{% endif %}</td>
+            <td class='fill'><span class='clip' tabindex='0' title='{{ r.comment }}'>{{ r.comment|default:"—" }}</span></td>
+            <td title='{{ r.reviewed_at|date:"Y-m-d H:i" }}'>{{ r.reviewed_at|date:"d M, H:i" }}</td>
+            <td>
+                {% if r.solution_id in recheck_ids %}
+                    <a href='{% url "core:ga_review_solution" ga.slug r.solution_id %}'>Re-check</a>
+                {% elif r.superseded_at or not r.solution %}
+                    Resubmitted
+                {% else %}
+                    {{ r.solution.get_status_display }}
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+</details>
 {% endif %}
 {% endif %}
 {% endblock %}

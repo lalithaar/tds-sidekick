@@ -30,7 +30,7 @@
     {% for v in sol.validations.all %}
         {% if not v.is_working %}
         <div class='muted' style='margin-bottom:8px;'>
-            <p><strong>Reviewer:</strong> {{ v.reviewer|cutie }} - {{ v.created_at|date:"Y-m-d H:i" }}</p>
+            <p><strong>Reviewer:</strong> {{ v.reviewer|cutie }} - {{ v.reviewed_at|date:"Y-m-d H:i" }}</p>
             <p><strong>Issue:</strong> {{ v.comment }}</p>
         </div>
         {% endif %}
