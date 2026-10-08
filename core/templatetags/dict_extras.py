@@ -22,7 +22,12 @@ def get_item(d, key):
 def cutie(user):
     if user is None or not getattr(user, 'id', None):
         return 'anonymous'
-    return CUTE_NAMES[user.id % len(CUTE_NAMES)]
+    # Return real name when available; fall back to email/username
+    if getattr(user, 'display_name', None):
+        return user.display_name
+    if getattr(user, 'email', None):
+        return user.email.split('@')[0]
+    return getattr(user, 'username', 'anonymous')
 
 @register.filter(name='markdown', is_safe=True)
 def md(value):
