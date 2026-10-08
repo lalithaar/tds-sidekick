@@ -227,6 +227,19 @@ class ReviewCapTests(ReviewQueueBase):
         admin = make_user('boss', role='admin', is_staff=True)
         self.assertIsNone(_reviewer_allowed(admin, self.ga))
 
+    def test_at_limit_hides_review_queue(self):
+        self.client.force_login(self.bob)
+        for sol in (self.sols[(self.carol, 1)], self.sols[(self.carol, 2)],
+                    self.sols[(self.dave, 1)], self.sols[(self.dave, 3)]):
+            self.post_review(self.bob, sol)
+        resp = self.client.get(reverse('core:ga_review', args=[self.ga.slug]))
+        self.assertTrue(resp.context['at_limit'])
+        self.assertEqual(len(resp.context['eligible']), 0)
+        content = resp.content.decode()
+        self.assertIn('review limit', content)
+        self.assertNotIn('Nothing to review yet', content)
+        self.assertNotIn('>Review</a>', content)
+
 
 class HomeNudgeTests(ReviewQueueBase):
     def test_nudge_shown_when_solutions_await_review(self):

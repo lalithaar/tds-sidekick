@@ -7,15 +7,14 @@
 <p class='muted'>You haven't opted into this assignment, so there's nothing here to review.</p>
 {% else %}
 <p>Reviews done: {{ reviews_done }}{% if allowed and allowed > reviews_done %} / {{ allowed }} allowed{% endif %} — {% if reviews_done < 2 %}need 2 to help unlock verified answers{% else %}minimum met, thank you!{% endif %}</p>
-{% if at_limit %}
-<p class='muted'>That's your review limit for this GA — thanks for the help!</p>
-{% endif %}
 {% if locked_qnums %}
 <p class='muted'>You can't review others yet on
     {% for q in locked_qnums %}Q{{ q }}{% if not forloop.last %}, {% endif %}{% endfor %}
     — submit your own solution for those first.</p>
 {% endif %}
-{% if eligible %}
+{% if at_limit %}
+<p class='muted'>That's your review limit for this GA — thanks for the help!</p>
+{% elif eligible %}
 <table>
     <thead>
         <tr><th>Q#</th><th>Solver</th><th>Status</th><th>Action</th></tr>

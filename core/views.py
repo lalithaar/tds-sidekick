@@ -711,9 +711,9 @@ def ga_review(request, slug):
                 .order_by('q_rev', 'sol_rev', 'id')
                 .select_related('question', 'solver')[:200])
     allowed = _reviewer_allowed(request.user, ga)
-    if allowed == 0:
-        eligible = Solution.objects.none()
     at_limit = allowed is not None and reviews_done >= allowed
+    if allowed == 0 or at_limit:
+        eligible = Solution.objects.none()
     return render(request, 'core/ga_review.html', {
         'ga': ga,
         'eligible': eligible,
