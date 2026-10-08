@@ -4,6 +4,8 @@
 <h2>TDS Sidekick</h2>
 <p class='tagline'>Your study-group sidekick — opt in, split the work, solve, review, and verify together. We're all cooked, let's get cooked together efficiently.</p>
 <p><a href='{% url "core:explainer" %}'>Guide: how to write good solutions</a></p>
+<p><strong>When writing answers</strong>: Data is different for everyone, so give the step by step of the method - what prompts to run, what to save, in what order - not the direct answer.</p>
+<p><strong>When reviewing answers</strong>: Say exactly what error, or what exactly doesn't work? Did you follow all the steps but somehow the answer is different? Paste the exact error message. "doesn't work" is not enough answer.</p>
 {% if not user.is_authenticated %}
     <p>Please <a href='{% url "accounts:login" %}'>login</a> or <a href='{% url "accounts:signup" %}'>sign up</a>.</p>
 {% elif not user.is_approved %}
@@ -104,6 +106,9 @@
         {% endif %}
         {% for pv in pending_verify %}
         <p class='muted'>Heads up: {% for n in pv.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ pv.title }}" still need a teammate's working marks before verified answers unlock.</p>
+        {% endfor %}
+        {% for nf in needs_fix_home %}
+        <p class='muted' style='color:#900'><strong>Fix needed:</strong> {% for n in nf.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ nf.title }}" still needs fixes — see <a href='{% url "core:ga_mine" nf.slug %}'>My Tasks</a> for review comments.</p>
         {% endfor %}
         {% endif %}
 

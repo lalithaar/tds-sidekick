@@ -2,7 +2,7 @@
 {% load dict_extras %}
 {% block title %}My Tasks{% endblock %}
 {% block content %}
-<h2>{{ ga.title }} – My Tasks</h2>
+<h2>{{ ga.title }} - My Tasks</h2>
 <table>
     <thead>
         <tr><th>Q#</th><th>Key</th><th>Status</th><th>Action</th></tr>
@@ -14,7 +14,7 @@
             <td>{{ s.question.key|default:"-" }}</td>
             <td>
                 {% with sol=sols|get_item:s.question_id %}
-                    {% if sol and sol.submitted_at %}Submitted ({{ sol.status }}){% elif sol %}Draft{% else %}Not started{% endif %}
+                    {% if sol and sol.submitted_at %}{{ sol.get_status_display }}{% elif sol %}Draft{% else %}Not started{% endif %}
                 {% endwith %}
             </td>
             <td><a href='{% url "core:ga_mine_submit" ga.slug s.id %}'>Submit/Edit</a></td>
@@ -22,4 +22,25 @@
     {% endfor %}
     </tbody>
 </table>
+{% if needs_fix_sols %}
+<h3>Reviews requesting fixes</h3>
+{% for sol in needs_fix_sols %}
+<div class='card'>
+    <p><strong>Q{{ sol.question.number }} - Needs fixes</strong></p>
+    {% for v in sol.validations.all %}
+        {% if not v.is_working %}
+        <div class='muted' style='margin-bottom:8px;'>
+            <p><strong>Reviewer:</strong> {{ v.reviewer|cutie }} - {{ v.created_at|date:"Y-m-d H:i" }}</p>
+            <p><strong>Issue:</strong> {{ v.comment }}</p>
+        </div>
+        {% endif %}
+    {% endfor %}
+    {% for s in slots %}
+        {% if s.question_id == sol.question_id %}
+        <p><a href='{% url "core:ga_mine_submit" ga.slug s.id %}'>Fix and resubmit Q{{ sol.question.number }}</a></p>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+{% endif %}
 {% endblock %}

@@ -84,7 +84,7 @@
                 <td class='mono'>{{ row.q.key|default:"-" }}</td>
                 <td>{{ row.slots }}</td>
                 <td>{{ row.submitted }}</td>
-                <td>{{ row.verified }}</td>
+                <td>{{ row.verified }}{% if row.needs_fix %} ({{ row.needs_fix }} needs fix){% endif %}</td>
             </tr>
         {% endfor %}
         </tbody>

@@ -57,8 +57,11 @@ def home(request):
                 .annotate(n=Count('id'))
             )
             marks_low = {}
+            needs_fix_home = {}
             for sol in Solution.objects.filter(solver=user, submitted_at__isnull=False).select_related('question'):
-                if sol.verifier_count < 2:
+                if sol.status == Solution.Status.NEEDS_FIX:
+                    needs_fix_home.setdefault(sol.assignment_id, []).append(sol.question.number)
+                elif sol.verifier_count < 2:
                     marks_low.setdefault(sol.assignment_id, []).append(sol.question.number)
             ctx['open_gas'] = [it for it in gas if it['ga'].status != Assignment.Status.CLOSED]
             ctx['closed_gas'] = [it for it in gas if it['ga'].status == Assignment.Status.CLOSED]
@@ -88,8 +91,12 @@ def home(request):
                 for it in gas
                 if it['ga'].status == Assignment.Status.ASSIGNED
                 and it['ga'].id in marks_low
-                and it['my_slots'] and it['submitted'] >= it['my_slots']
-                and rev_counts.get(it['ga'].id, 0) >= 2
+            ]
+            ctx['needs_fix_home'] = [
+                {'title': it['ga'].title, 'qnums': sorted(needs_fix_home[it['ga'].id]), 'slug': it['ga'].slug}
+                for it in gas
+                if it['ga'].status == Assignment.Status.ASSIGNED
+                and it['ga'].id in needs_fix_home
             ]
     return render(request, 'core/home.html', ctx)
 
@@ -400,6 +407,7 @@ def ga_detail(request, slug):
                     'slots': q.slots.count(),
                     'submitted': q.solutions.filter(submitted_at__isnull=False).count(),
                     'verified': q.solutions.filter(status=Solution.Status.VERIFIED).count(),
+                    'needs_fix': q.solutions.filter(status=Solution.Status.NEEDS_FIX).count(),
                 }
                 for q in ga.questions.all()
             ],
@@ -510,10 +518,16 @@ def _gating_checklist(user, ga):
     else:
         items.append({'label': f'Reviewed {reviews_done} solutions — minimum met.', 'done': True, 'url': None})
     low = []
+    needs_fix = []
     for sol in Solution.objects.filter(assignment=ga, solver=user, submitted_at__isnull=False).select_related('question'):
-        if sol.verifier_count < 2:
+        if sol.status == Solution.Status.NEEDS_FIX:
+            needs_fix.append(sol.question.number)
+        elif sol.verifier_count < 2:
             low.append(sol.question.number)
-    if low:
+    if needs_fix:
+        items.append({'label': f"Fix issues and resubmit — Q{', Q'.join(str(n) for n in sorted(needs_fix))} still needs fixes.",
+                      'done': False, 'url': reverse('core:ga_mine', args=[ga.slug])})
+    elif low:
         items.append({'label': f"Get 2 working marks on all your submissions — Q{', Q'.join(str(n) for n in sorted(low))} still below 2.",
                       'done': False, 'url': reverse('core:ga_mine', args=[ga.slug])})
     else:
@@ -528,8 +542,10 @@ def _gating_ok(user, ga):
 def ga_mine(request, slug):
     ga = get_object_or_404(Assignment, slug=slug)
     slots = AssignmentSlot.objects.filter(assignment=ga, user=request.user).select_related('question')
-    sols = {s.question_id: s for s in Solution.objects.filter(assignment=ga, solver=request.user)}
-    return render(request, 'core/ga_mine.html', {'ga': ga, 'slots': slots, 'sols': sols})
+    sols_qs = Solution.objects.filter(assignment=ga, solver=request.user).select_related('question').prefetch_related('validations__reviewer')
+    sols = {s.question_id: s for s in sols_qs}
+    needs_fix_sols = [s for s in sols_qs if s.status == Solution.Status.NEEDS_FIX]
+    return render(request, 'core/ga_mine.html', {'ga': ga, 'slots': slots, 'sols': sols, 'needs_fix_sols': needs_fix_sols})
 
 
 @login_required
@@ -646,10 +662,13 @@ def ga_review_solution(request, slug, solution_id):
             sol.verifier_count += 1
         else:
             sol.needs_fix_count += 1
-        if sol.verifier_count >= 2 and sol.status != Solution.Status.VERIFIED:
+        if sol.verifier_count >= 2:
             sol.status = Solution.Status.VERIFIED
             sol.verified_at = timezone.now()
-        # if not working, leave as submitted (optionally could mark needs_fix)
+        elif not is_working and sol.needs_fix_count >= 1:
+            sol.status = Solution.Status.NEEDS_FIX
+        elif sol.submitted_at:
+            sol.status = Solution.Status.SUBMITTED
         sol.save(update_fields=['verifier_count', 'needs_fix_count', 'last_reviewed_at', 'status', 'verified_at'])
         messages.success(request, 'Review submitted.')
         return redirect('core:ga_review', slug=ga.slug)
