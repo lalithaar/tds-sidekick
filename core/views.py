@@ -1,7 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -706,7 +707,8 @@ def ga_review(request, slug):
                 .exclude(solver=request.user)
                 .exclude(question_id__in=locked_qids)
                 .exclude(id__in=reviewed_ids)
-                .annotate(sol_rev=Subquery(sol_rev), q_rev=Subquery(q_rev))
+                .annotate(sol_rev=Coalesce(Subquery(sol_rev), Value(0)),
+                          q_rev=Coalesce(Subquery(q_rev), Value(0)))
                 .filter(sol_rev__lt=2)
                 .order_by('q_rev', 'sol_rev', 'id')
                 .select_related('question', 'solver')[:200])

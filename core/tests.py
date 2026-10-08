@@ -114,6 +114,17 @@ class ReviewQueueFilterTests(ReviewQueueBase):
         resp = self.client.get(self.review_url(sol), follow=True)
         self.assertIn('already has 2 reviews', ' '.join(str(m) for m in resp.context['messages']))
 
+    def test_unreviewed_solutions_appear_in_queue(self):
+        from core.views import _nudge_open_count
+
+        self.client.force_login(self.erin)
+        resp = self.client.get(reverse('core:ga_review', args=[self.ga.slug]))
+        eligible = list(resp.context['eligible'])
+
+        self.assertEqual(len(eligible), 6)
+        self.assertNotIn(self.sols[(self.erin, 2)], eligible)
+        self.assertEqual(len(eligible), _nudge_open_count(self.ga, self.erin))
+
     def test_stranger_cannot_review(self):
         self.client.force_login(self.stranger)
         resp = self.client.get(reverse('core:ga_review', args=[self.ga.slug]))
