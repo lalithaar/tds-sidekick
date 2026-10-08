@@ -98,6 +98,25 @@ def home(request):
                 if it['ga'].status == Assignment.Status.ASSIGNED
                 and it['ga'].id in needs_fix_home
             ]
+            review_nudges = []
+            for it in gas:
+                ga = it['ga']
+                if ga.status != Assignment.Status.ASSIGNED or not it['my_slots']:
+                    continue
+                allowed = _reviewer_allowed(user, ga)
+                if not allowed or rev_counts.get(ga.id, 0) >= allowed:
+                    continue
+                open_count = _nudge_open_count(ga, user)
+                if not open_count:
+                    continue
+                verb = 'is' if open_count == 1 else 'are'
+                review_nudges.append({
+                    'slug': ga.slug,
+                    'text': (f"{open_count} solution{'s' if open_count != 1 else ''} in {ga.title} "
+                             f"{verb} still waiting for a second pair of eyes — no pressure, "
+                             f"but yours would help."),
+                })
+            ctx['review_nudges'] = review_nudges
     return render(request, 'core/home.html', ctx)
 
 
@@ -538,6 +557,69 @@ def _gating_checklist(user, ga):
 def _gating_ok(user, ga):
     return all(i['done'] for i in _gating_checklist(user, ga))
 
+
+def _open_review_stats(ga):
+    """(open solutions, reviews still needed) — solutions awaiting review until
+    they reach 2 reviews or a reviewer sends them back for fixes."""
+    vcs = list(
+        Solution.objects.filter(assignment=ga, status=Solution.Status.SUBMITTED)
+        .annotate(vc=Count('validations'))
+        .filter(vc__lt=2)
+        .values_list('vc', flat=True)
+    )
+    return len(vcs), sum(2 - vc for vc in vcs)
+
+
+def _review_cap(ga):
+    """Max reviews one participant may give in this GA. Default 4, bumped up
+    when there aren't enough reviewers to give every open solution 2 reviews."""
+    n = AssignmentSlot.objects.filter(assignment=ga).values('user_id').distinct().count()
+    if not n:
+        return 4
+    _, need = _open_review_stats(ga)
+    return max(4, -(-need // n))
+
+
+def _reviewer_allowed(user, ga):
+    """Reviews this user may give in this GA:
+    None = unlimited (admin), 0 = hasn't opted in,
+    2 = opted in but still has assigned solutions unsubmitted,
+    otherwise the (possibly bumped) cap."""
+    if _is_admin(user):
+        return None
+    slots = AssignmentSlot.objects.filter(assignment=ga, user=user)
+    if not slots.exists():
+        return 0
+    submitted_qs = set(
+        Solution.objects.filter(assignment=ga, solver=user, submitted_at__isnull=False)
+        .values_list('question_id', flat=True)
+    )
+    if slots.exclude(question_id__in=submitted_qs).exists():
+        return 2
+    return _review_cap(ga)
+
+
+def _nudge_open_count(ga, user):
+    """Open solutions this user could actually review right now."""
+    submitted_qs = set(
+        Solution.objects.filter(assignment=ga, solver=user, submitted_at__isnull=False)
+        .values_list('question_id', flat=True)
+    )
+    blocked_q = set(
+        AssignmentSlot.objects.filter(assignment=ga, user=user)
+        .exclude(question_id__in=submitted_qs).values_list('question_id', flat=True)
+    )
+    reviewed = Validation.objects.filter(reviewer=user, solution__assignment=ga).values('solution_id')
+    return (
+        Solution.objects.filter(assignment=ga, status=Solution.Status.SUBMITTED)
+        .exclude(solver=user)
+        .exclude(question_id__in=blocked_q)
+        .exclude(id__in=reviewed)
+        .annotate(vc=Count('validations'))
+        .filter(vc__lt=2)
+        .count()
+    )
+
 @login_required
 def ga_mine(request, slug):
     ga = get_object_or_404(Assignment, slug=slug)
@@ -606,17 +688,26 @@ def ga_review(request, slug):
                .values('solution_id').annotate(c=Count('id')).values('c'))
     q_rev = (Validation.objects.filter(solution__assignment=ga, solution__question=OuterRef('question'))
              .values('solution__question').annotate(c=Count('id')).values('c'))
-    eligible = (Solution.objects.filter(assignment=ga, submitted_at__isnull=False)
+    eligible = (Solution.objects.filter(assignment=ga, submitted_at__isnull=False,
+                                        status=Solution.Status.SUBMITTED)
                 .exclude(solver=request.user)
                 .exclude(question_id__in=locked_qids)
                 .exclude(id__in=reviewed_ids)
                 .annotate(sol_rev=Subquery(sol_rev), q_rev=Subquery(q_rev))
+                .filter(sol_rev__lt=2)
                 .order_by('q_rev', 'sol_rev', 'id')
                 .select_related('question', 'solver')[:200])
+    allowed = _reviewer_allowed(request.user, ga)
+    if allowed == 0:
+        eligible = Solution.objects.none()
+    at_limit = allowed is not None and reviews_done >= allowed
     return render(request, 'core/ga_review.html', {
         'ga': ga,
         'eligible': eligible,
         'reviews_done': reviews_done,
+        'allowed': allowed,
+        'at_limit': at_limit,
+        'not_opted': allowed == 0,
         'locked_qnums': locked_qnums,
         'my_qs': {s.question_id for s in my_slots},
     })
@@ -646,6 +737,26 @@ def ga_review_solution(request, slug, solution_id):
     if Validation.objects.filter(solution=sol, reviewer=request.user).exists():
         messages.info(request, 'Already reviewed this solution.')
         return redirect('core:ga_review', slug=ga.slug)
+    if sol.status == Solution.Status.NEEDS_FIX:
+        messages.info(request, 'A reviewer sent this one back to the author for fixes — '
+                               'it returns to the queue if resubmitted.')
+        return redirect('core:ga_review', slug=ga.slug)
+    if sol.status == Solution.Status.VERIFIED or sol.validations.count() >= 2:
+        messages.info(request, 'This one already has 2 reviews — no more needed. Thanks!')
+        return redirect('core:ga_review', slug=ga.slug)
+    allowed = _reviewer_allowed(request.user, ga)
+    if allowed == 0:
+        messages.error(request, "You haven't opted into this assignment, so there's nothing to review here.")
+        return redirect('core:ga_review', slug=ga.slug)
+    my_reviews = Validation.objects.filter(reviewer=request.user, solution__assignment=ga).count()
+    if allowed is not None and my_reviews >= allowed:
+        if assigned_qs - submitted_qs:
+            messages.info(request, f"That's {allowed} reviews for now — submit your own solutions "
+                                   f"first, then you can review more (and unlock verified answers).")
+        else:
+            messages.info(request, f"You've done {my_reviews} reviews for this GA — "
+                                   f"that's plenty, thank you!")
+        return redirect('core:ga_review', slug=ga.slug)
     if request.method == 'POST':
         is_working = request.POST.get('is_working') == 'yes'
         comment = request.POST.get('comment', '').strip()
@@ -665,12 +776,17 @@ def ga_review_solution(request, slug, solution_id):
         if sol.verifier_count >= 2:
             sol.status = Solution.Status.VERIFIED
             sol.verified_at = timezone.now()
-        elif not is_working and sol.needs_fix_count >= 1:
+        elif sol.needs_fix_count >= 1:
             sol.status = Solution.Status.NEEDS_FIX
-        elif sol.submitted_at:
+        else:
             sol.status = Solution.Status.SUBMITTED
         sol.save(update_fields=['verifier_count', 'needs_fix_count', 'last_reviewed_at', 'status', 'verified_at'])
-        messages.success(request, 'Review submitted.')
+        if sol.status == Solution.Status.VERIFIED:
+            messages.success(request, 'Review submitted — solution verified!')
+        elif sol.status == Solution.Status.NEEDS_FIX:
+            messages.success(request, 'Review submitted — flagged for the author with your notes.')
+        else:
+            messages.success(request, 'Review submitted.')
         return redirect('core:ga_review', slug=ga.slug)
     return render(request, 'core/ga_review_solution.html', {'ga': ga, 'sol': sol})
 
