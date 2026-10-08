@@ -16,7 +16,7 @@
     <thead>
         <tr>
             <th>Title</th><th>Status</th><th>Opted in</th><th>Slots</th>
-            <th>Submitted</th><th>Verified</th><th>Reviews</th><th>Completion</th>
+            <th>Submitted</th><th>Verified</th><th>Reviews</th><th>Coverage</th>
         </tr>
     </thead>
     <tbody>
@@ -29,7 +29,7 @@
             <td>{{ r.submitted }}</td>
             <td>{{ r.verified }}</td>
             <td>{{ r.reviews }}</td>
-            <td>{{ r.completion }}%</td>
+            <td>{{ r.coverage }}%</td>
         </tr>
     {% empty %}
         <tr><td colspan='8'>No GAs yet.</td></tr>

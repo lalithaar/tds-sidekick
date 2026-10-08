@@ -113,6 +113,13 @@ def _build_admin_dashboard(ctx, gas):
     one_away_c = _aggregate(
         Solution.objects.filter(submitted_at__isnull=False, verifier_count=1), 'assignment_id'
     )
+    total_q_c = _aggregate(Question.objects.all(), 'assignment_id')
+    covered_q_c = dict(
+        Solution.objects.filter(status=Solution.Status.VERIFIED)
+        .values('assignment_id')
+        .annotate(covered=Count('question_id', distinct=True))
+        .values_list('assignment_id', 'covered')
+    )
 
     pending = User.objects.filter(is_approved=False).count()
     ctx['pending_count'] = pending
@@ -129,6 +136,7 @@ def _build_admin_dashboard(ctx, gas):
     open_cards = []
     closed_rows = []
     cov_verified = cov_slots = 0
+    cov_covered_q = cov_total_q = 0
 
     for it in gas:
         ga = it['ga']
@@ -142,7 +150,10 @@ def _build_admin_dashboard(ctx, gas):
             'one_away': one_away_c.get(ga.id, 0),
         }
         slots = st['slots']
-        st['coverage'] = round(100 * st['verified'] / slots) if slots else 0
+        total_q = total_q_c.get(ga.id, 0)
+        covered_q = covered_q_c.get(ga.id, 0)
+        st['coverage'] = round(100 * covered_q / total_q) if total_q else 0
+        st['questions'] = total_q
         concerns = []
 
         def raise_attention(level, text, cta='Open', form_action=None):
@@ -200,10 +211,12 @@ def _build_admin_dashboard(ctx, gas):
         bar_label = ''
         if ga.status == Assignment.Status.ASSIGNED and slots:
             show_bar, bar_pct = True, st['coverage']
-            bar_label = (f"{st['verified']}/{slots} verified · {st['submitted']} submitted · "
-                         f"{st['reviews']} reviews")
+            bar_label = (f"{covered_q}/{total_q} questions verified · {st['verified']}/{slots} solutions · "
+                         f"{st['submitted']} submitted · {st['reviews']} reviews")
             cov_verified += st['verified']
             cov_slots += slots
+            cov_covered_q += covered_q
+            cov_total_q += total_q
         elif ga.status == Assignment.Status.POLLING:
             show_bar = True
             bar_pct = round(100 * st['opted'] / eligible) if eligible else 0
@@ -228,10 +241,10 @@ def _build_admin_dashboard(ctx, gas):
     ctx['open_cards'] = open_cards
     ctx['closed_rows'] = closed_rows
     ctx['hero'] = {
-        'has': cov_slots > 0,
-        'pct': round(100 * cov_verified / cov_slots) if cov_slots else 0,
-        'verified': cov_verified,
-        'slots': cov_slots,
+        'has': cov_total_q > 0,
+        'pct': round(100 * cov_covered_q / cov_total_q) if cov_total_q else 0,
+        'verified': cov_covered_q,
+        'slots': cov_total_q,
     }
 
 @login_required
@@ -249,11 +262,20 @@ def system_stats(request):
     subs_c = _aggregate(Solution.objects.filter(submitted_at__isnull=False), 'assignment_id')
     ver_c = _aggregate(Solution.objects.filter(status=Solution.Status.VERIFIED), 'assignment_id')
     rev_c = _aggregate(Validation.objects.all(), 'solution__assignment_id')
+    total_q_c = _aggregate(Question.objects.all(), 'assignment_id')
+    covered_q_c = dict(
+        Solution.objects.filter(status=Solution.Status.VERIFIED)
+        .values('assignment_id')
+        .annotate(covered=Count('question_id', distinct=True))
+        .values_list('assignment_id', 'covered')
+    )
 
     ga_rows = []
     for ga in Assignment.objects.all():
         slots = slots_c.get(ga.id, 0)
         submitted = subs_c.get(ga.id, 0)
+        total_q = total_q_c.get(ga.id, 0)
+        covered_q = covered_q_c.get(ga.id, 0)
         ga_rows.append({
             'ga': ga,
             'opted': opted_c.get(ga.id, 0),
@@ -261,7 +283,7 @@ def system_stats(request):
             'submitted': submitted,
             'verified': ver_c.get(ga.id, 0),
             'reviews': rev_c.get(ga.id, 0),
-            'completion': round(100 * submitted / slots) if slots else 0,
+            'coverage': round(100 * covered_q / total_q) if total_q else 0,
         })
 
     optins_u = _aggregate(Participation.objects.all(), 'user_id')
@@ -637,7 +659,7 @@ def ga_review_solution(request, slug, solution_id):
 def ga_solutions(request, slug):
     ga = get_object_or_404(Assignment, slug=slug)
     checklist = _gating_checklist(request.user, ga)
-    ok = all(i['done'] for i in checklist)
+    ok = _is_admin(request.user) or all(i['done'] for i in checklist)
     verified = (
         Solution.objects.filter(assignment=ga, status=Solution.Status.VERIFIED)
         .select_related('question', 'solver')
@@ -653,7 +675,7 @@ def ga_solutions(request, slug):
 @login_required
 def ga_solution_detail(request, slug, solution_id):
     ga = get_object_or_404(Assignment, slug=slug)
-    if not _gating_ok(request.user, ga):
+    if not _is_admin(request.user) and not _gating_ok(request.user, ga):
         messages.error(request, 'Complete requirements first: submit all assigned, review >=2, all own submitted must reach >=2 working marks.')
         return redirect('core:ga_solutions', slug=ga.slug)
     sol = get_object_or_404(Solution, id=solution_id, assignment=ga)
