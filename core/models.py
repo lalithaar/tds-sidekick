@@ -128,6 +128,27 @@ class ResubmitNotice(models.Model):
         ordering = ('-created_at',)
 
 
+class ReviewLog(models.Model):
+    """Append-only record of reviews given, so reviewers can look back at
+    what they reviewed. Unlike Validation, rows survive a resubmit — they
+    just get superseded_at set."""
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='review_logs')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='review_logs')
+    solution = models.ForeignKey(Solution, on_delete=models.SET_NULL, null=True, blank=True, related_name='review_logs')
+    solver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='+')
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='review_logs')
+    is_working = models.BooleanField()
+    comment = models.TextField(blank=True)
+    reviewed_at = models.DateTimeField(default=timezone.now)
+    superseded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('-reviewed_at', '-id')
+        indexes = [
+            models.Index(fields=('assignment', 'reviewer')),
+        ]
+
+
 class SolutionAttachment(models.Model):
     solution = models.ForeignKey(Solution, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='solutions/%Y/%m/%d/')

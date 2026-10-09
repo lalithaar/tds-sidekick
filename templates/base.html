@@ -86,6 +86,12 @@
         .markdown img { max-width: 100%; }
         @media (max-width: 700px) { .md-grid { grid-template-columns: 1fr; } }
         body.editor-page main { max-width: 110ch; }
+        body.wide-page main { max-width: 90ch; }
+        .table-scroll { overflow-x: auto; }
+        table.compact th, table.compact td { white-space: nowrap; padding: 6px 10px; }
+        table.compact td.fill { width: 100%; }
+        .clip { display: block; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+        .clip:focus { white-space: normal; overflow-wrap: anywhere; outline: none; }
         body.editor-page .md-grid { gap: 28px; margin-top: 16px; }
         body.editor-page .md-col label { margin-bottom: 8px; }
         body.editor-page .md-col .muted { margin-bottom: 8px; }
