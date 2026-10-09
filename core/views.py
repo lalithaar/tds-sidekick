@@ -22,6 +22,7 @@ def home(request):
     ctx = {}
     if user.is_authenticated and getattr(user, 'is_approved', False):
         is_admin = _is_admin(user)
+        is_course_team = _is_course_team(user)
         ctx['is_admin'] = is_admin
         gas = []
         opted = set()
@@ -42,13 +43,14 @@ def home(request):
             ctx['has_opted'] = bool(opted)
         for ga in Assignment.objects.all():
             gas.append({
-                'ga': ga,
-                'poll_open': ga.status == ga.Status.POLLING and not ga.is_poll_expired(),
-                'is_opted': ga.id in opted,
-                'my_slots': slot_counts.get(ga.id, 0),
-                'submitted': submitted_counts.get(ga.id, 0),
-            })
+            'ga': ga,
+            'poll_open': ga.status == ga.Status.POLLING and not ga.is_poll_expired(),
+            'is_opted': ga.id in opted,
+            'my_slots': slot_counts.get(ga.id, 0),
+            'submitted': submitted_counts.get(ga.id, 0),
+        })
         ctx['gas'] = gas
+        ctx['is_course_team'] = is_course_team
         if is_admin:
             _build_admin_dashboard(ctx, gas)
         else:
@@ -292,7 +294,7 @@ def ga_list(request):
 
 @login_required
 def system_stats(request):
-    if not _is_admin(request.user):
+    if not (_is_admin(request.user) or _is_course_team(request.user)):
         return redirect('core:home')
 
     opted_c = _aggregate(Participation.objects.all(), 'assignment_id')
@@ -346,6 +348,7 @@ def system_stats(request):
         'ga_rows': ga_rows,
         'student_rows': student_rows,
         'pending': pending,
+        'is_admin': _is_admin(request.user),
         'totals': {
             'students': len(student_rows),
             'pending': pending.count(),
@@ -359,6 +362,10 @@ def system_stats(request):
 
 def _is_admin(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser or getattr(user, 'role', 'participant') == 'admin')
+
+
+def _is_course_team(user):
+    return user.is_authenticated and getattr(user, 'role', '') == 'course_team'
 
 
 @transaction.atomic
@@ -809,7 +816,7 @@ def ga_review_solution(request, slug, solution_id):
 def ga_solutions(request, slug):
     ga = get_object_or_404(Assignment, slug=slug)
     checklist = _gating_checklist(request.user, ga)
-    ok = _is_admin(request.user) or all(i['done'] for i in checklist)
+    ok = _is_admin(request.user) or _is_course_team(request.user) or all(i['done'] for i in checklist)
     verified = (
         Solution.objects.filter(assignment=ga, status=Solution.Status.VERIFIED)
         .select_related('question', 'solver')
@@ -825,9 +832,10 @@ def ga_solutions(request, slug):
 @login_required
 def ga_solution_detail(request, slug, solution_id):
     ga = get_object_or_404(Assignment, slug=slug)
-    if not _is_admin(request.user) and not _gating_ok(request.user, ga):
-        messages.error(request, 'Complete requirements first: submit all assigned, review >=2, all own submitted must reach >=2 working marks.')
-        return redirect('core:ga_solutions', slug=ga.slug)
+    if not (_is_admin(request.user) or _is_course_team(request.user)):
+        if not _gating_ok(request.user, ga):
+            messages.error(request, 'Complete requirements first: submit all assigned, review >=2, all own submitted must reach >=2 working marks.')
+            return redirect('core:ga_solutions', slug=ga.slug)
     sol = get_object_or_404(Solution, id=solution_id, assignment=ga)
     if sol.status != Solution.Status.VERIFIED:
         messages.error(request, 'Only verified solutions are viewable here.')

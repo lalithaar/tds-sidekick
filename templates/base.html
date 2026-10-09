@@ -144,6 +144,8 @@
                 <a href='{% url "core:ga_create_new" %}'>Create GA</a>
                 <a href='{% url "accounts:pending_approvals" %}'>Approvals{% if nav_pending_count %} ({{ nav_pending_count }}){% endif %}</a>
                 <a href='{% url "core:system_stats" %}'>Stats</a>
+            {% elif user.role == "course_team" %}
+                <a href='{% url "core:system_stats" %}'>Stats</a>
             {% endif %}
             <span class='nav-right'>
                 <span>{{ user.display_name }} ({{ user.email }})</span>

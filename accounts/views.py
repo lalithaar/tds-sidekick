@@ -54,6 +54,10 @@ def _is_admin(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser or getattr(user, 'role', 'participant') == 'admin')
 
 
+def _is_course_team(user):
+    return user.is_authenticated and getattr(user, 'role', '') == 'course_team'
+
+
 @login_required
 def pending_approvals(request):
     if not _is_admin(request.user):

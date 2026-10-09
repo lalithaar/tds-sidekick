@@ -62,7 +62,7 @@
     </tbody>
 </table>
 
-{% if pending %}
+{% if is_admin and pending %}
 <h3>Pending approvals ({{ pending|length }})</h3>
 <ul>
     {% for u in pending %}

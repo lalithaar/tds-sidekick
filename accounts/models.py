@@ -15,6 +15,7 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = 'admin', 'Admin'
         PARTICIPANT = 'participant', 'Participant'
+        COURSE_TEAM = 'course_team', 'Course Team'
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PARTICIPANT)
     display_name = models.CharField(max_length=100)
