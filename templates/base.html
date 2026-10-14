@@ -55,7 +55,6 @@
         .timeline { list-style: none; padding-left: 0; }
         .timeline li { padding: 3px 0 3px 16px; border-left: 2px solid var(--border); margin-left: 6px; }
         .timeline li.current { border-left-color: var(--border-strong); font-weight: 600; }
-
         .attention, .plain { list-style: none; padding-left: 0; }
         .attention li, .plain li { margin-bottom: 5px; }
         .lvl-high { color: var(--danger); }
@@ -64,7 +63,6 @@
         .muted { color: var(--muted); }
         footer { text-align: center; margin-top: 24px; color: var(--muted); font-size: .9em; }
         .delete-warn { color: var(--danger); }
-
         .chip { font-size: .75em; padding: 2px 8px; border-radius: 10px; background: var(--chip-bg); color: var(--chip-fg); margin: 0 6px 0 10px; }
         .closed-list { list-style: none; padding: 0; }
         .closed-list li { padding: 5px 0; border-bottom: 1px dotted var(--border); }
@@ -135,6 +133,430 @@
         .codehilite .vm { color: var(--c-navy) }
         .codehilite .fm { color: var(--c-blue) }
     </style>
+    <!-- Lilac mist theme (visual only): fonts + overrides of the styles above -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ---------- tokens ---------- */
+        :root {
+            --bg: #f5f2ff;
+            --surface: #ffffff;
+            --surface-2: #faf8ff;
+            --fg: #1f1b3a;
+            --muted: #6b6785;
+            --accent: #6d5dfc;
+            --accent-fg: #ffffff;
+            --accent-soft: #ebe8ff;
+            --border: #e3def5;
+            --border-strong: #b9b0ee;
+            --chip-bg: #ebe8ff;
+            --chip-fg: #4a3fc4;
+            --code-bg: #f0edff;
+            --info-bg: #ffffff;
+            --info-border: #d9d3f7;
+            --danger: #d6336c;
+            --warn: #b86e00;
+            --success: #0f8a63;
+            --shadow: 0 1px 2px rgba(60, 40, 140, .06), 0 8px 24px rgba(60, 40, 140, .08);
+            --radius: 16px;
+            --font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-head: 'Bricolage Grotesque', 'Figtree', -apple-system, 'Segoe UI', sans-serif;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #14122a;
+                --surface: #1e1b3d;
+                --surface-2: #252148;
+                --fg: #ece9ff;
+                --muted: #a29fc4;
+                --accent: #a99cff;
+                --accent-fg: #17133a;
+                --accent-soft: #2d2866;
+                --border: #34306a;
+                --border-strong: #5b54a8;
+                --chip-bg: #2d2866;
+                --chip-fg: #cfc8ff;
+                --code-bg: #191638;
+                --info-bg: #1e1b3d;
+                --info-border: #3c3780;
+                --danger: #ff8aa8;
+                --warn: #ffc266;
+                --success: #5fe0b5;
+                --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
+            }
+        }
+
+        /* ---------- base ---------- */
+        body {
+            font-family: var(--font-body);
+            font-size: 1.02rem;
+            line-height: 1.6;
+            margin: 0;
+            padding: 14px 20px 48px;
+            min-height: 100vh;
+            background:
+                radial-gradient(60rem 30rem at 85% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+                radial-gradient(50rem 28rem at -10% 10%, color-mix(in srgb, #ff9ec4 14%, transparent), transparent 70%),
+                var(--bg);
+            background-attachment: fixed;
+            color: var(--fg);
+        }
+        h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+        h1 { font-size: 2rem; margin: 1.2rem 0 .6rem; }
+        h2 { font-size: 1.4rem; margin: 1.6rem 0 .5rem; }
+        h3 { font-size: 1.1rem; }
+        a, a:visited { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+        a:hover { text-decoration-thickness: 2.5px; }
+        :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; border-radius: 6px; }
+        ::selection { background: var(--accent-soft); }
+        nav + hr { display: none; }
+        hr { border: 0; border-top: 1px solid var(--border); margin: 1.4rem 0; }
+
+        /* ---------- nav: floating pill ---------- */
+        nav, main { max-width: 62rem; }
+        nav {
+            position: sticky;
+            top: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 8px 10px;
+            margin-bottom: 28px;
+            background: color-mix(in srgb, var(--surface) 82%, transparent);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            box-shadow: var(--shadow);
+        }
+        nav a, nav a:visited {
+            color: var(--fg);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: .95rem;
+            padding: 6px 14px;
+            border-radius: 999px;
+            transition: background-color .15s ease, color .15s ease;
+        }
+        nav a:hover { background: var(--accent-soft); color: var(--accent); }
+        .nav-right { gap: 6px; font-size: .9rem; color: var(--muted); }
+        .nav-right > span { padding: 0 6px; }
+        @media (max-width: 700px) {
+            nav { border-radius: 22px; }
+            .nav-right { margin-left: 0; width: 100%; }
+        }
+        /* ---------- buttons ---------- */
+        button, .btn, input[type=submit], input[type=button] {
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--accent-fg);
+            background: var(--accent);
+            border: 1px solid transparent;
+            border-radius: 999px;
+            padding: 8px 18px;
+            transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+        }
+        button:hover, .btn:hover, input[type=submit]:hover { filter: brightness(1.06); box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+        button:active, .btn:active { transform: translateY(1px); }
+        nav .btn { background: transparent; color: var(--fg); border-color: var(--border-strong); padding: 5px 14px; font-weight: 500; }
+        nav .btn:hover { background: var(--accent-soft); box-shadow: none; }
+        .link-btn { background: none; border: none; color: var(--danger); text-decoration: underline; border-radius: 6px; padding: 6px 0; font-weight: 500; }
+        .link-btn:hover { box-shadow: none; filter: none; }
+
+        /* ---------- forms ---------- */
+        input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=file]),
+        textarea, select {
+            font: inherit;
+            color: var(--fg);
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            padding: 8px 12px;
+            max-width: 100%;
+            box-sizing: border-box;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+        }
+        input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+        label { font-weight: 500; }
+        .form-errors, .errorlist { color: var(--danger); }
+
+        /* ---------- cards, tables, lists ---------- */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 20px;
+            min-width: 110px;
+            box-shadow: var(--shadow);
+        }
+        .card strong { font-family: var(--font-head); font-size: 1.7em; color: var(--accent); }
+        .cards { gap: 14px; }
+        table { border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+        th, td { border: 0; border-bottom: 1px solid var(--border); padding: 10px 14px; }
+        th { background: var(--surface-2); font-weight: 600; font-size: .9rem; color: var(--muted); }
+        tbody tr:last-child td, table tr:last-child td { border-bottom: 0; }
+        tbody tr:hover td { background: var(--surface-2); }
+        .timeline li { border-left: 2px solid var(--border); padding: 4px 0 4px 18px; }
+        .timeline li.current { border-left-color: var(--accent); color: var(--accent); }
+        .closed-list li { border-bottom: 1px solid var(--border); padding: 8px 0; }
+        .chip { font-weight: 500; padding: 2px 10px; border-radius: 999px; }
+        .mono, code { font-size: .92em; }
+        /* ---------- messages ---------- */
+        .messages {
+            max-width: 62rem;
+            margin: 0 auto 20px;
+            padding: 12px 16px;
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-left: 4px solid var(--accent);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        .messages li + li { margin-top: 4px; }
+        .messages .success { color: var(--success); }
+        .messages .error { color: var(--danger); }
+
+        /* ---------- markdown editor / preview ---------- */
+        .md-editor, .preview { border-radius: 14px; }
+        .preview { background: var(--surface); border-color: var(--border-strong); padding: 14px 16px; }
+        .markdown pre { border-radius: 12px; padding: 14px; }
+        .markdown blockquote { border-left: 3px solid var(--accent); }
+        .markdown img { border-radius: 12px; }
+        .codehilite { border-radius: 12px; }
+        /* ---------- footer ---------- */
+        footer { margin-top: 40px; }
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
+        }
+    </style>
+    <!-- Theme add-on (visual only): link pills, nav auth buttons, form card, table polish -->
+    <style>
+        /* ---------- links in text: soft highlighter underline ---------- */
+        main p a, main p a:visited, main li a, main li a:visited {
+            text-decoration: none;
+            font-weight: 600;
+            background: linear-gradient(var(--accent-soft), var(--accent-soft)) left bottom / 100% 38% no-repeat;
+            border-radius: 4px;
+            transition: background-size .18s ease, color .18s ease;
+        }
+        main p a:hover, main li a:hover { background-size: 100% 100%; }
+        /* ---------- a paragraph's lone link ("Guide...", "Go to approvals", "Back") becomes a pill ---------- */
+        main > p > a:only-child, main > p > a:only-child:visited {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1px solid transparent;
+            border-radius: 999px;
+            transition: transform .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+        }
+        main > p > a:only-child:hover {
+            background: var(--accent);
+            color: var(--accent-fg);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+        /* ---------- nav: Login = outlined pill, Sign up = filled pill ---------- */
+        nav .nav-right > a, nav .nav-right > a:visited { border: 1px solid var(--border-strong); padding: 5px 16px; }
+        nav .nav-right > a:last-child, nav .nav-right > a:last-child:visited {
+            background: var(--accent);
+            color: var(--accent-fg);
+            border-color: transparent;
+            font-weight: 600;
+        }
+        nav .nav-right > a:last-child:hover { filter: brightness(1.08); background: var(--accent); color: var(--accent-fg); }
+
+        /* ---------- forms (create GA, login, signup...) sit in a card ---------- */
+        body:not(.editor-page) main > form {
+            width: fit-content;
+            min-width: min(100%, 22rem);
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 22px 26px;
+            margin-top: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+        main > form p { margin: 0 0 14px; }
+        main > form ol { padding-left: 1.6rem; }
+        main > form ol li { margin-bottom: 10px; padding-left: 4px; }
+        main > form ol li::marker { color: var(--accent); font-weight: 700; }
+        main > form ol li input { width: min(100%, 22rem); }
+        main > form button, main > form input[type=submit] { margin-top: 6px; }
+        main > form input:hover:not(:focus), main > form select:hover:not(:focus), main > form textarea:hover:not(:focus) {
+            border-color: var(--accent);
+        }
+
+        /* ---------- tables: livelier rows, tidier action buttons ---------- */
+        tbody tr, table tr { transition: background-color .15s ease; }
+        tbody tr:hover td { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+        td .btn, td button { padding: 5px 16px; min-width: auto; font-size: .9rem; }
+        td:empty::before { content: "\2014"; color: var(--muted); }
+        th { white-space: nowrap; }
+
+        /* ---------- stat cards react on hover ---------- */
+        .card { transition: transform .15s ease, box-shadow .15s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(60, 40, 140, .14); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card:hover, main > p > a:only-child:hover { transform: none; }
+        }
+
+        /* ---------- auth forms (login / signup): stacked, roomier fields ---------- */
+        body:not(.editor-page) main > form:has(input[type=password]) {
+            width: min(100%, 26rem);
+            min-width: 0;
+        }
+        main > form:has(input[type=password]) p { display: flex; flex-direction: column; gap: 6px; }
+        main > form:has(input[type=password]) p label { font-weight: 600; font-size: .92rem; }
+        main > form:has(input[type=password]) input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]) { width: 100%; }
+        main > form:has(input[type=password]) button:not(.pw-toggle):not([type=button]) { width: 100%; padding: 10px 18px; margin-top: 4px; }
+        .helptext { color: var(--muted); font-size: .85rem; }
+
+        /* ---------- show / hide password ---------- */
+        .pw-wrap { position: relative; display: block; width: 100%; }
+        .pw-wrap > input { width: 100% !important; padding-right: 46px !important; }
+        .pw-wrap .pw-toggle {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            width: 34px; height: 34px; min-width: 0; padding: 0; margin: 0;
+            display: grid; place-items: center;
+            background: none; border: none; border-radius: 50%;
+            color: var(--muted); box-shadow: none; filter: none;
+        }
+        .pw-wrap .pw-toggle:hover { background: var(--accent-soft); color: var(--accent); box-shadow: none; filter: none; }
+        .pw-toggle svg { width: 20px; height: 20px; }
+
+        /* ---------- live email hint (appears while typing, vanishes when valid) ---------- */
+        .field-hint {
+            display: flex; align-items: flex-start; gap: 6px;
+            color: var(--danger); font-size: .86rem; font-weight: 500; line-height: 1.35;
+            max-height: 0; opacity: 0; overflow: hidden; transform: translateY(-4px);
+            transition: max-height .2s ease, opacity .2s ease, transform .2s ease;
+        }
+        .field-hint.is-visible { max-height: 3.5rem; opacity: 1; transform: none; }
+        .field-hint::before {
+            content: "!"; flex: none; width: 16px; height: 16px; margin-top: 2px;
+            display: grid; place-items: center; border-radius: 50%;
+            background: var(--danger); color: var(--surface); font-size: .7rem; font-weight: 700;
+        }
+        input[aria-invalid=true] { border-color: var(--danger) !important; }
+        input[aria-invalid=true]:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 20%, transparent) !important; }
+
+        /* Links styled as buttons */
+        main a.btn, main a.btn:visited,
+        main > p > a.btn:only-child,
+        main > p > a.btn:only-child:visited {
+            display: inline-block;
+            padding: 8px 20px;
+            background: var(--accent);
+            color: var(--accent-fg);
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            box-shadow: none;
+            transform: none;
+        }
+    
+        /* ---------- Next steps: visually prioritized alerts ---------- */
+        .next-step-alert {
+            padding: 13px 17px;
+            margin: 10px 0;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: 13px;
+            background: var(--surface);
+            box-shadow: 0 2px 12px rgba(60, 40, 140, .055);
+            line-height: 1.55;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .next-step-alert:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        .next-step-alert.next-step-pending {
+            border-left-color: var(--warn);
+            background: color-mix(in srgb, var(--warn) 5%, var(--surface));
+        }
+        .next-step-alert.next-step-fix {
+            border-left-color: var(--danger);
+            background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+        }
+        .next-step-alert.next-step-review {
+            border-left-color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+        }
+        .next-step-pending strong { color: var(--warn); }
+        .next-step-fix strong { color: var(--danger); }
+        .next-step-review strong { color: var(--accent); }
+        .next-step-alert a.btn {
+            margin-left: 5px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .next-step-alert { transition: none; }
+            .next-step-alert:hover { transform: none; }
+        }
+
+        main a.btn:hover, main > p > a.btn:only-child:hover {
+            background: var(--accent);
+            color: var(--accent-fg);
+            filter: brightness(1.06);
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+        }
+
+        /* ---------- Homepage next-step alerts ---------- */
+        .next-step-alert {
+            margin: 12px 0;
+            padding: 13px 16px;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: 12px;
+            background: var(--surface);
+            line-height: 1.6;
+            box-shadow: 0 2px 10px rgba(60, 40, 140, 0.05);
+            transition: box-shadow 0.18s ease, transform 0.18s ease;
+        }
+        .next-step-alert:hover {
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+        .next-step-pending {
+            border-left-color: var(--warn);
+            background: color-mix(in srgb, var(--warn) 5%, var(--surface));
+        }
+        .next-step-fix {
+            border-left-color: var(--danger);
+            background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+        }
+        .next-step-review {
+            border-left-color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+        }
+        .next-step-recheck {
+            border-left-color: var(--border-strong);
+            background: var(--surface-2);
+        }
+        .next-step-pending strong { color: var(--warn); }
+        .next-step-fix strong { color: var(--danger); }
+        .next-step-review strong { color: var(--accent); }
+        .next-step-alert a { font-weight: 600; }
+        .next-step-alert a.btn { margin-left: 6px; }
+        @media (prefers-reduced-motion: reduce) {
+            .next-step-alert { transition: none; }
+            .next-step-alert:hover { transform: none; }
+        }
+    </style>
 </head>
 <body class="{% block body_class %}default{% endblock %}">
     <nav>
@@ -173,6 +595,74 @@
     <footer>
         built to get cooked together by <a href='https://isrl.in/'>lalithaar</a>
     </footer>
+    <script>
+    (function () {
+        var DOMAIN = /@ds\.study\.iitm\.ac\.in$/i;
+        var MSG = 'Only @ds.study.iitm.ac.in email addresses are allowed.';
+        var SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+        var EYE = SVG + '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        var EYE_OFF = SVG + '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+        var hinted = false;
+
+        document.querySelectorAll('form').forEach(function (form) {
+            var pws = form.querySelectorAll('input[type=password]');
+            if (!pws.length) return;
+            /* show / hide password */
+            pws.forEach(function (input) {
+                var wrap = document.createElement('span');
+                wrap.className = 'pw-wrap';
+                input.parentNode.insertBefore(wrap, input);
+                wrap.appendChild(input);
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'pw-toggle';
+                btn.setAttribute('aria-label', 'Show password');
+                btn.setAttribute('aria-pressed', 'false');
+                btn.innerHTML = EYE;
+                btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                btn.addEventListener('click', function () {
+                    var show = input.type === 'password';
+                    input.type = show ? 'text' : 'password';
+                    btn.innerHTML = show ? EYE_OFF : EYE;
+                    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+                    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+                });
+                wrap.appendChild(btn);
+            });
+
+            /* live email hint */
+            form.querySelectorAll('input[type=email], input[name=email], input[id*=email], input[name=username]').forEach(function (inp, i) {
+                var strict = inp.type === 'email' || /email/i.test(inp.name + inp.id) || pws.length > 1;
+                var hint = document.createElement('div');
+                hint.className = 'field-hint';
+                hint.id = 'email-hint-' + i;
+                hint.setAttribute('role', 'status');
+                hint.textContent = MSG;
+                (inp.closest('p, li, div') || inp.parentNode).appendChild(hint);
+                inp.setAttribute('aria-describedby', hint.id);
+                hinted = true;
+                function check() {
+                    var v = inp.value.trim();
+                    var show = v.length > 0 && !DOMAIN.test(v) && (strict || v.indexOf('@') > -1);
+                    hint.classList.toggle('is-visible', show);
+                    inp.setAttribute('aria-invalid', show ? 'true' : 'false');
+                }
+                inp.addEventListener('input', check);
+                check();
+            });
+        });
+
+        /* the old always-visible note is replaced by the live hint */
+
+        if (hinted) {
+            document.querySelectorAll('main p').forEach(function (p) {
+
+                if (!p.children.length && /email addresses are allowed/i.test(p.textContent)) p.hidden = true;
+
+            });
+        }
+    })();
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
