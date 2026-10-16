@@ -6,7 +6,7 @@
 {% if not_opted %}
 <p class='muted'>You haven't opted into this assignment, so there's nothing here to review.</p>
 {% else %}
-<p>Reviews done: {{ reviews_done }}{% if allowed and allowed > reviews_done %} / {{ allowed }} allowed{% endif %} — {% if reviews_done < 2 %}need 2 to help unlock verified answers{% else %}minimum met, thank you!{% endif %}</p>
+<p class="review-progress">Reviews done: <span class="review-progress-count">{{ reviews_done }}{% if allowed and allowed > reviews_done %} / {{ allowed }}{% endif %}</span> — {% if reviews_done < 2 %}need 2 to help unlock verified answers{% else %}minimum met, thank you!{% endif %}</p>
 {% if locked_qnums %}
 <p class='muted'>You can't review others yet on
     {% for q in locked_qnums %}Q{{ q }}{% if not forloop.last %}, {% endif %}{% endfor %}
@@ -24,7 +24,7 @@
         <tr>
             <td>{{ sol.question.number }}</td>
             <td>{{ sol.solver|cutie }}</td>
-            <td>{{ sol.status }}</td>
+            <td><span class="review-status">{{ sol.status|default:"Awaiting update" }}</span></td>
             <td><a href='{% url "core:ga_review_solution" ga.slug sol.id %}'>Review</a></td>
         </tr>
     {% endfor %}

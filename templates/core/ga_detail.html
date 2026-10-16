@@ -2,7 +2,12 @@
 {% block title %}{{ ga.title }}{% endblock %}
 {% block content %}
 <h2>{{ ga.title }}</h2>
-<p>Status: {{ ga.status }} | Questions: {{ ga.num_questions }}</p>
+<p class="ga-detail-meta">
+    <span class="ga-status-badge ga-status-{{ ga.status }}">
+        {{ ga.get_status_display }}
+    </span>
+    <span class="ga-question-count">{{ ga.num_questions }} questions</span>
+</p>
 {% if is_admin %}
 <div class='ctas'>
     {% if ga.status == 'draft' %}
@@ -10,18 +15,18 @@
             {% csrf_token %}<button class='btn'>Open Poll (72h)</button>
         </form>
         <form method='post' action='{% url "core:ga_close" ga.slug %}' style='display:inline'>
-            {% csrf_token %}<button class='link-btn'>Close</button>
+            {% csrf_token %}<button class='link-btn '>Close</button>
         </form>
     {% elif ga.status == 'polling' %}
         <form method='post' action='{% url "core:ga_assign" ga.slug %}' style='display:inline'>
             {% csrf_token %}<button class='btn'>Assign Randomly</button>
         </form>
         <form method='post' action='{% url "core:ga_close" ga.slug %}' style='display:inline'>
-            {% csrf_token %}<button class='link-btn'>Close</button>
+            {% csrf_token %}<button class='link-btn danger-link'>Close</button>
         </form>
     {% elif ga.status == 'assigned' %}
         <form method='post' action='{% url "core:ga_close" ga.slug %}' style='display:inline'>
-            {% csrf_token %}<button class='link-btn'>Close Assignment</button>
+            {% csrf_token %}<button class='link-btn danger-link'>Close Assignment</button>
         </form>
     {% endif %}
 </div>
@@ -50,7 +55,7 @@
 {% endif %}
 
 {% if is_admin %}
-    <details>
+    <details class="detail-section">
         <summary><strong>Lifecycle</strong></summary>
         <ul class='timeline'>
             <li class='{% if ga.status == "draft" %}current{% endif %}'>Created {{ ga.created_at|date:"Y-m-d H:i" }}</li>
@@ -66,7 +71,7 @@
         </ul>
     </details>
 
-    <details style='margin-top: 12px'>
+    <details class="detail-section" style='margin-top: 12px'>
         <summary><strong>Stats</strong></summary>
         <div class='cards'>
         <div class='card'><strong>{{ ga_stats.opted }}/{{ ga_stats.eligible }}</strong><span>opted in</span></div>
@@ -92,30 +97,33 @@
     {% endif %}
     </details>
 
-    <details style='margin-top: 12px'>
+    <details class="detail-section" style='margin-top: 12px'>
         <summary><strong>Participants ({{ opted_users|length }})</strong></summary>
         <ul style='margin-top: 4px'>
             {% for u in opted_users %}
-                <li>{{ u.display_name }} <small class='mono'>{{ u.email }}</small></li>
+                <li>{{ u.display_name }} <span class="muted">·</span> <small class="mono muted">{{ u.email }}</small></li>
             {% empty %}
                 <li>No one yet.</li>
             {% endfor %}
         </ul>
     </details>
 
-    <details style='margin-top: 12px'>
+    <details class="detail-section" style='margin-top: 12px'>
     <summary><strong>Edit Questions</strong></summary>
     <form method='post'>
         {% csrf_token %}
         <input type='hidden' name='action' value='save_questions'>
         {{ question_formset.management_form }}
-        <ol style='list-style: none; padding-left: 0; margin: 0'>
+        <ol class="question-edit-list">
             {% for f in question_formset %}
-            <li style='margin-bottom: 6px'>
+            <li class="question-edit-row">
                 {{ f.id }}{{ f.number.as_hidden }}{{ f.order.as_hidden }}
-                <label for='{{ f.key.id_for_label }}'>{{ f.number.value|default:forloop.counter }}.</label>
+                <label class="question-edit-number" for="{{ f.key.id_for_label }}">{{ f.number.value|default:forloop.counter }}.</label>
                 {{ f.key }}
-                {% if f.instance.pk %}{{ f.DELETE }} <label for='{{ f.DELETE.id_for_label }}' class='delete-warn'>delete</label>{% endif %}
+                {% if f.instance.pk %}
+                    {{ f.DELETE }}
+                    <label for="{{ f.DELETE.id_for_label }}" class="delete-warn">Delete</label>
+                {% endif %}
             </li>
             {% endfor %}
         </ol>

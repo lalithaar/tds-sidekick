@@ -23,7 +23,7 @@
     {% for r in ga_rows %}
         <tr>
             <td><a href='{% url "core:ga_detail" r.ga.slug %}'>{{ r.ga.title }}</a></td>
-            <td>{{ r.ga.get_status_display }}</td>
+            <td><span class="ga-status-badge ga-status-{{ r.ga.status }}">{{ r.ga.get_status_display }}</span></td>
             <td>{{ r.opted }}</td>
             <td>{{ r.slots }}</td>
             <td>{{ r.submitted }}</td>
@@ -66,7 +66,7 @@
 <h3>Pending approvals ({{ pending|length }})</h3>
 <ul>
     {% for u in pending %}
-        <li>{{ u.display_name }} <small class='mono'>{{ u.email }}</small> — key <span class='mono'>{{ u.approval_key }}</span></li>
+        <li>{{ u.display_name }} <small class='mono'>{{ u.email }}</small> — key <span class="approval-key mono">{{ u.approval_key }}</span></li>
     {% endfor %}
 </ul>
 <p><a href='{% url "accounts:pending_approvals" %}'>Go to approvals →</a></p>

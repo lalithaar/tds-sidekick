@@ -18,7 +18,7 @@
         <tr>
             <td>{{ u.display_name }}</td>
             <td>{{ u.email }}</td>
-            <td class='mono'>{{ u.approval_key }}</td>
+            <td><span class="approval-key mono">{{ u.approval_key }}</span></td>
             <td>{{ u.approval_requested_at|date:"Y-m-d H:i:s T" }}</td>
             <td>
                 <form method='post' action='{% url "accounts:approve_user" u.pk %}'>

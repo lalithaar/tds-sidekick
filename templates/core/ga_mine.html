@@ -14,7 +14,13 @@
             <td>{{ s.question.key|default:"-" }}</td>
             <td>
                 {% with sol=sols|get_item:s.question_id %}
-                    {% if sol and sol.submitted_at %}{{ sol.get_status_display }}{% elif sol %}Draft{% else %}Not started{% endif %}
+                    {% if sol and sol.submitted_at %}
+                        <span class="task-status {% if sol.status == 'needs_fix' %}task-status-fix{% else %}task-status-submitted{% endif %}">{{ sol.get_status_display }}</span>
+                    {% elif sol %}
+                        <span class="task-status task-status-draft">Draft</span>
+                    {% else %}
+                        <span class="task-status task-status-not-started">Not started</span>
+                    {% endif %}
                 {% endwith %}
             </td>
             <td><a href='{% url "core:ga_mine_submit" ga.slug s.id %}'>Submit/Edit</a></td>
@@ -22,22 +28,29 @@
     {% endfor %}
     </tbody>
 </table>
+
 {% if needs_fix_sols %}
 <h3>Reviews requesting fixes</h3>
 {% for sol in needs_fix_sols %}
-<div class='card'>
-    <p><strong>Q{{ sol.question.number }} - Needs fixes</strong></p>
+<div class="card review-fix-card">
+    <div class="review-fix-heading">
+        <h4>Q{{ sol.question.number }} - Needs fixes</h4>
+        <span class="chip review-fix-status">Needs Fix</span>
+    </div>
     {% for v in sol.validations.all %}
         {% if not v.is_working %}
-        <div class='muted' style='margin-bottom:8px;'>
-            <p><strong>Reviewer:</strong> {{ v.reviewer|cutie }} - {{ v.created_at|date:"Y-m-d H:i" }}</p>
-            <p><strong>Issue:</strong> {{ v.comment }}</p>
+        <div class="review-fix-details">
+            <p class="reviewer-info"><strong>Reviewer</strong> {{ v.reviewer|cutie }} <span class="muted">· {{ v.created_at|date:"Y-m-d H:i" }}</span></p>
+            <div class="review-issue">
+                <strong>Issue</strong>
+                <p>{{ v.comment }}</p>
+            </div>
         </div>
         {% endif %}
     {% endfor %}
     {% for s in slots %}
         {% if s.question_id == sol.question_id %}
-        <p><a href='{% url "core:ga_mine_submit" ga.slug s.id %}'>Fix and resubmit Q{{ sol.question.number }}</a></p>
+        <a class="btn review-fix-action" href='{% url "core:ga_mine_submit" ga.slug s.id %}'>Fix and resubmit Q{{ sol.question.number }}</a>
         {% endif %}
     {% endfor %}
 </div>

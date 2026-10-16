@@ -3,12 +3,33 @@
 {% block content %}
 <h2>{{ ga.title }} – Verified Solutions</h2>
 {% if not ok %}
-<p class='lock-note'>Locked. Finish these to view verified answers:</p>
-<ul class='plain'>
-    {% for i in checklist %}{% if not i.done %}<li>{% if i.url %}<a href='{{ i.url }}'>{{ i.label }}</a>{% else %}{{ i.label }}{% endif %}</li>{% endif %}{% endfor %}
-</ul>
+<div class="solutions-lock-card">
+    <div class="solutions-lock-heading">
+        <span class="solutions-lock-icon" aria-hidden="true">🔒</span>
+        <div>
+            <h3>Verified solutions are locked</h3>
+            <p class="muted">Complete the following steps to unlock verified answers.</p>
+        </div>
+    </div>
+    <ul class="solutions-checklist plain">
+        {% for i in checklist %}
+            {% if not i.done %}
+            <li>
+                {% if i.url %}
+                <a class="solutions-checklist-link" href="{{ i.url }}">
+                    <span>{{ i.label }}</span>
+                    <span aria-hidden="true">→</span>
+                </a>
+                {% else %}
+                <span class="solutions-checklist-text">{{ i.label }}</span>
+                {% endif %}
+            </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
 {% endif %}
-<table>
+<table class="verified-solutions-table">
     <thead>
         <tr><th>Q#</th><th>Solutions</th></tr>
     </thead>
@@ -19,15 +40,15 @@
             <td>
                 {% if ok %}
                     {% for sol in sols %}
-<a href='{% url "core:ga_solution_detail" ga.slug sol.id %}'>View Solution {{ forloop.counter }}</a>{% if not forloop.last %} · {% endif %}
+                    <a class="solution-view-link" href='{% url "core:ga_solution_detail" ga.slug sol.id %}'>View Solution {{ forloop.counter }}</a>{% if not forloop.last %}<span class="solution-link-separator"> · </span>{% endif %}
                     {% endfor %}
                 {% else %}
-                    -
+                    <span class="muted">Locked</span>
                 {% endif %}
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan='2' class='muted'>No verified solutions yet.</td></tr>
+        <tr><td colspan='2' class='muted solutions-empty-state'>No verified solutions yet.</td></tr>
     {% endfor %}
     </tbody>
 </table>

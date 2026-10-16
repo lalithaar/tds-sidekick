@@ -19,15 +19,15 @@
 
     {% if is_admin %}
         {% if attention %}
-        <h3>Needs attention</h3>
-        <ul class='plain'>
+        <h3><span class="attention-heading-badge">Needs attention</span></h3>
+        <ul class="plain attention-list">
             {% for a in attention %}
-            <li>
-                {{ a.text }}
+            <li class="attention-item">
+                <span class="attention-text">{{ a.text }}</span>
                 {% if a.form_action %}
-                <form method='post' action='{{ a.form_action }}' style='display:inline'>{% csrf_token %}<button class='btn'>{{ a.cta }}</button></form>
+                <form method="post" action="{{ a.form_action }}">{% csrf_token %}<button class="btn">{{ a.cta }}</button></form>
                 {% else %}
-                <a class='btn' href='{{ a.url }}'>{{ a.cta }}</a>
+                <a class="btn" href="{{ a.url }}">{{ a.cta }}</a>
                 {% endif %}
             </li>
             {% endfor %}
@@ -68,7 +68,10 @@
                         {% elif it.poll_open %}
                             <form method='post' action='{% url "core:ga_assign" it.ga.slug %}' style='display:inline'>{% csrf_token %}<button class='btn'>Assign</button></form>
                         {% elif it.ga.status == 'assigned' %}
-                            <form method='post' action='{% url "core:ga_close" it.ga.slug %}' style='display:inline'>{% csrf_token %}<button class='btn'>Close</button></form>
+                            <form method='post' action='{% url "core:ga_close" it.ga.slug %}' style='display:inline'>
+                                {% csrf_token %}
+                                <button class='btn' style='background:#FADCE7; color:#B42355; border:1px solid #F3BFD2;'>Close</button>
+                            </form>
                         {% endif %}
                     </td>
                 </tr>
@@ -94,30 +97,32 @@
 
     {% else %}
         {% if steps or pending_verify or needs_fix_home or review_nudges or recheck_notices %}
-        <h3>Next steps</h3>
-        {% if steps %}
-        <ul class='plain'>
-            {% for s in steps %}
-            <li>{% if s.url %}<a href='{{ s.url }}'>{{ s.text }}</a>{% else %}{{ s.text }}{% endif %}</li>
+        <div class="next-steps-container">
+            <h3>Next steps</h3>
+            {% if steps %}
+            <ul class="plain next-steps-list">
+                {% for s in steps %}
+                <li>{% if s.url %}<a href="{{ s.url }}">{{ s.text }}</a>{% else %}{{ s.text }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% for rc in recheck_notices %}
+            <p class="muted next-step-alert next-step-recheck">You flagged Q{{ rc.qnum }} in "{{ rc.title }}" as not working — the author has resubmitted it. <a href="{% url 'core:ga_review_solution' rc.slug rc.sol_id %}">Take another look</a>.</p>
             {% endfor %}
-        </ul>
-        {% endif %}
-        {% for rc in recheck_notices %}
-        <p class='muted'>You flagged Q{{ rc.qnum }} in "{{ rc.title }}" as not working — the author has resubmitted it. <a href='{% url "core:ga_review_solution" rc.slug rc.sol_id %}'>Take another look</a>.</p>
-        {% endfor %}
-        {% for pv in pending_verify %}
-        <p class='muted'>Heads up: {% for n in pv.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ pv.title }}" still need a teammate's working marks before verified answers unlock.</p>
-        {% endfor %}
-        {% for nf in needs_fix_home %}
-        <p class='muted'><strong>Fix needed:</strong> {% for n in nf.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ nf.title }}" still needs fixes — see <a href='{% url "core:ga_mine" nf.slug %}'>My Tasks</a> for review comments.</p>
-        {% endfor %}
-        {% for rn in review_nudges %}
-        <p class='muted'>{{ rn.text }} <a href='{% url "core:ga_review" rn.slug %}'>Have a look</a></p>
-        {% endfor %}
+            {% for pv in pending_verify %}
+            <p class="muted next-step-alert next-step-pending">Heads up: {% for n in pv.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ pv.title }}" still need a teammate's working marks before verified answers unlock.</p>
+            {% endfor %}
+            {% for nf in needs_fix_home %}
+            <p class="muted next-step-alert next-step-fix"><strong>Fix needed:</strong> {% for n in nf.qnums %}Q{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %} in "{{ nf.title }}" still needs fixes — see <a href="{% url 'core:ga_mine' nf.slug %}">My Tasks</a> for review comments.</p>
+            {% endfor %}
+            {% for rn in review_nudges %}
+            <p class="muted next-step-alert next-step-review">{{ rn.text }} <a class="btn" href="{% url 'core:ga_review' rn.slug %}">Have a look</a></p>
+            {% endfor %}
+        </div>
         {% else %}
-        {% if has_opted %}
-        <p class='all-good'>You're all done — wait for the next GA release and take a break.</p>
-        {% endif %}
+            {% if has_opted %}
+            <p class="all-good">You're all done — wait for the next GA release and take a break.</p>
+            {% endif %}
         {% endif %}
 
         <h3>Assignments</h3>
@@ -128,7 +133,7 @@
                     <th>Title</th>
                     <th>Status</th>
                     <th>Your progress</th>
-                    <th>Actions</th>
+                    <th>Quick actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -136,8 +141,8 @@
                 <tr>
                     <td><a href='{% url "core:ga_detail" it.ga.slug %}'>{{ it.ga.title }}</a></td>
                     <td>
-                        {{ it.ga.get_status_display }}
-                        {% if it.poll_open %}<br><small>closes {{ it.ga.poll_closes_at|date:"Y-m-d H:i T" }}</small>{% endif %}
+                        <span class="status-pill">{{ it.ga.get_status_display }}</span>
+                        {% if it.poll_open %}<br><small class="poll-deadline">closes {{ it.ga.poll_closes_at|date:"Y-m-d H:i T" }}</small>{% endif %}
                     </td>
                     <td>
                         {% if it.is_opted and it.ga.status == 'polling' %}Opted in{% endif %}
